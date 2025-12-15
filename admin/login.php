@@ -79,6 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-align: center;
             margin-bottom: 15px;
         }
+        .button-container {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn-login">Войти</button>
         </form>
         
+        <div class="button-container">
+            <a href="../index.php" class="btn-home">Вернуться на главную</a>
+        </div>
+
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
             Парикмахерская "Стиль" - Администрирование
         </div>
