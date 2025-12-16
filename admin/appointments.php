@@ -187,7 +187,7 @@ $appointments = $stmt->fetchAll();
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
-                <small>Парикмахерская "Стиль"</small>
+                <small>Парикмахерская "Lumiere"</small>
             </div>
             <ul class="admin-menu">
                 <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Дашборд</a></li>
