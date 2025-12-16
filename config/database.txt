@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS work_schedule (
     id INT PRIMARY KEY AUTO_INCREMENT,
     master_id INT NOT NULL,
     day_of_week TINYINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7), -- 1=Понедельник, 7=Воскресенье
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
+    start_time TIME,
+    end_time TIME,
     is_working_day BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (master_id) REFERENCES masters(id) ON DELETE CASCADE,
     INDEX idx_master_day (master_id, day_of_week),

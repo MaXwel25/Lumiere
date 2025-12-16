@@ -3,22 +3,22 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Получаем статистику
+// получаем статистику
 $stats = [];
 
-// Количество записей сегодня
+// количество записей сегодня
 $stmt = $db->query("SELECT COUNT(*) as count FROM appointments WHERE appointment_date = CURDATE()");
 $stats['today_appointments'] = $stmt->fetch()['count'];
 
-// Количество активных клиентов
+// количество активных клиентов
 $stmt = $db->query("SELECT COUNT(*) as count FROM clients");
 $stats['total_clients'] = $stmt->fetch()['count'];
 
-// Количество мастеров
+// количество мастеров
 $stmt = $db->query("SELECT COUNT(*) as count FROM masters WHERE is_active = TRUE");
 $stats['active_masters'] = $stmt->fetch()['count'];
 
-// Выручка за сегодня
+// выручка за сегодня
 $stmt = $db->query("
     SELECT SUM(r.final_amount) as total 
     FROM receipts r 
@@ -27,7 +27,7 @@ $stmt = $db->query("
 ");
 $stats['today_revenue'] = $stmt->fetch()['total'] ?? 0;
 
-// Ближайшие записи
+// ближайшие записи
 $stmt = $db->query("
     SELECT a.*, c.full_name as client_name, m.full_name as master_name, s.name as service_name
     FROM appointments a
@@ -144,7 +144,7 @@ $upcoming_appointments = $stmt->fetchAll();
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
+        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -162,12 +162,12 @@ $upcoming_appointments = $stmt->fetchAll();
             </ul>
         </div>
         
-        <!-- Основной контент -->
+        <!-- основной контент -->
         <div class="admin-content">
             <h1>Панель управления</h1>
             <p>Добро пожаловать в админ-панель парикмахерской "Lumiere"</p>
             
-            <!-- Статистика -->
+            <!-- статистика -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Записи сегодня</h3>
@@ -187,7 +187,7 @@ $upcoming_appointments = $stmt->fetchAll();
                 </div>
             </div>
             
-            <!-- Ближайшие записи -->
+            <!-- ближайшие записи -->
             <div class="section">
                 <h2>Ближайшие записи</h2>
                 <div class="table-responsive">

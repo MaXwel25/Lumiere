@@ -1,14 +1,7 @@
     <?php
     // functions.php - Общие функции для проекта
 
-    /**
-     * Подключение к базе данных
-     */
-    
-
-    /**
-     * Получить список услуг
-     */
+    // получить список услуг
     function getServices($db, $active_only = true) {
         $sql = "SELECT * FROM services";
         if ($active_only) {
@@ -20,9 +13,7 @@
         return $stmt->fetchAll();
     }
 
-    /**
-     * Получить список мастеров
-     */
+    // получить список мастеров
     function getMasters($db, $active_only = true) {
         $sql = "SELECT * FROM masters";
         if ($active_only) {
@@ -34,9 +25,7 @@
         return $stmt->fetchAll();
     }
 
-    /**
-     * Получить расписание мастера
-     */
+    // получить расписание мастера
     function getMasterSchedule($db, $master_id) {
         $stmt = $db->prepare("
             SELECT * FROM work_schedule 
@@ -47,11 +36,9 @@
         return $stmt->fetchAll();
     }
 
-    /**
-     * Получить свободное время мастера на определенную дату
-     */
+    // получить свободное время мастера на определенную дату
     function getAvailableTimes($db, $master_id, $date, $service_duration = 60) {
-        // Проверяем, является ли день рабочим
+        // проверяем, является ли день рабочим
         $day_of_week = date('N', strtotime($date));
         
         $stmt = $db->prepare("
@@ -63,10 +50,10 @@
         $schedule = $stmt->fetch();
         
         if (!$schedule || !$schedule['is_working_day']) {
-            return []; // Выходной день
+            return []; // выходной день
         }
         
-        // Получаем занятое время
+        // получаем занятое время
         $stmt = $db->prepare("
             SELECT start_time, end_time 
             FROM appointments 
@@ -78,9 +65,9 @@
         $stmt->execute([$master_id, $date]);
         $busy_times = $stmt->fetchAll();
         
-        // Генерируем доступное время
+        // генерируем доступное время
         $available_times = [];
-        $interval = 30; // Интервал в минутах
+        $interval = 30; // интервал в минутах
         $start = strtotime($schedule['start_time']);
         $end = strtotime($schedule['end_time']);
         
@@ -88,7 +75,7 @@
             $time_end = $time + ($service_duration * 60);
             $is_available = true;
             
-            // Проверяем пересечение с занятым временем
+            // проверяем пересечение с занятым временем
             foreach ($busy_times as $busy) {
                 $busy_start = strtotime($busy['start_time']);
                 $busy_end = strtotime($busy['end_time']);
@@ -107,20 +94,18 @@
         return $available_times;
     }
 
-    /**
-     * Создать запись на услугу
-     */
+    // Создать запись на услугу
     function createAppointment($db, $data) {
         try {
             $db->beginTransaction();
             
-            // Проверяем доступность времени
+            // проверяем доступность времени
             $available_times = getAvailableTimes($db, $data['master_id'], $data['appointment_date'], $data['duration']);
             if (!in_array($data['start_time'], $available_times)) {
                 throw new Exception('Выбранное время недоступно');
             }
             
-            // Если клиент не указан, создаем нового
+            // если клиент не указан, создаем нового
             if (empty($data['client_id'])) {
                 $stmt = $db->prepare("
                     INSERT INTO clients (full_name, phone, email) 
@@ -136,10 +121,10 @@
                 $client_id = $data['client_id'];
             }
             
-            // Рассчитываем время окончания
+            // рассчитываем время окончания
             $end_time = date('H:i:s', strtotime($data['start_time']) + ($data['duration'] * 60));
             
-            // Создаем запись
+            // создаем запись
             $stmt = $db->prepare("
                 INSERT INTO appointments 
                 (client_id, master_id, service_id, appointment_date, start_time, end_time, notes, status) 
@@ -157,7 +142,7 @@
             
             $appointment_id = $db->lastInsertId();
             
-            // Создаем чек
+            // создаем чек
             $stmt = $db->prepare("
                 INSERT INTO receipts (appointment_id, total_amount, discount, final_amount, payment_method) 
                 SELECT ?, price, ?, price - ?, 'cash' 
@@ -187,9 +172,7 @@
         }
     }
 
-    /**
-     * Отменить запись
-     */
+    // отменить запись
     function cancelAppointment($db, $appointment_id) {
         $stmt = $db->prepare("
             UPDATE appointments 
@@ -199,9 +182,7 @@
         return $stmt->execute([$appointment_id]);
     }
 
-    /**
-     * Получить статистику
-     */
+    // получить статистику
     function getStatistics($db, $period = 'today') {
         $statistics = [];
         
@@ -219,7 +200,7 @@
                 $date_condition = "1=1";
         }
         
-        // Количество записей
+        // количество записей
         $stmt = $db->query("
             SELECT COUNT(*) as count, status 
             FROM appointments 
@@ -228,7 +209,7 @@
         ");
         $statistics['appointments'] = $stmt->fetchAll();
         
-        // Выручка
+        // выручка
         $stmt = $db->query("
             SELECT 
                 COUNT(*) as count,
@@ -240,7 +221,7 @@
         ");
         $statistics['revenue'] = $stmt->fetch();
         
-        // Популярные услуги
+        // популярные услуги
         $stmt = $db->query("
             SELECT 
                 s.name,
@@ -253,7 +234,7 @@
         ");
         $statistics['popular_services'] = $stmt->fetchAll();
         
-        // Занятость мастеров
+        // занятость мастеров
         $stmt = $db->query("
             SELECT 
                 m.full_name,
@@ -268,24 +249,18 @@
         return $statistics;
     }
 
-    /**
-     * Форматирование даты и времени
-     */
+    // форматирование даты и времени
     function formatDateTime($date, $format = 'd.m.Y H:i') {
         if (empty($date)) return '';
         return date($format, strtotime($date));
     }
 
-    /**
-     * Форматирование суммы
-     */
+    // форматирование суммы
     function formatPrice($amount) {
         return number_format($amount, 0, ',', ' ') . ' ₽';
     }
 
-    /**
-     * Получить название дня недели
-     */
+    // получить название дня недели
     function getDayName($day_number) {
         $days = [
             1 => 'Понедельник',
@@ -299,9 +274,7 @@
         return $days[$day_number] ?? 'Неизвестно';
     }
 
-    /**
-     * Отправка email уведомления
-     */
+    // отправка email уведомления
     function sendEmailNotification($to, $subject, $message, $headers = null) {
         if (!$headers) {
             $headers = "MIME-Version: 1.0\r\n";
@@ -309,48 +282,42 @@
             $headers .= "From: Парикмахерская \"Стиль\" <no-reply@barbershop-style.ru>\r\n";
         }
         
-        // В реальном проекте используйте PHPMailer или аналогичную библиотеку
-        // Здесь упрощенная версия для демонстрации
+        // в реальном проекте используйте PHPMailer или аналогичную библиотеку
+        // здесь упрощенная версия для демонстрации
         return mail($to, $subject, $message, $headers);
     }
 
-    /**
-     * Отправка SMS уведомления (заглушка)
-     */
+    // отправка SMS уведомления (заглушка)
     function sendSmsNotification($phone, $message) {
-        // В реальном проекте здесь будет интеграция с SMS-сервисом
+        // в реальном проекте здесь будет интеграция с SMS-сервисом
         error_log("SMS to {$phone}: {$message}");
         return true;
     }
 
-    /**
-     * Генерация уникального номера заказа
-     */
+    // генерация уникального номера заказа
     function generateOrderNumber() {
         return 'ORD-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
     }
 
-    /**
-     * Валидация данных формы
-     */
+    // валидация данных формы
     function validateFormData($data, $rules) {
         $errors = [];
         
         foreach ($rules as $field => $rule) {
             $value = $data[$field] ?? '';
             
-            // Проверка на обязательность
+            // проверка на обязательность
             if (isset($rule['required']) && $rule['required'] && empty($value)) {
                 $errors[$field] = $rule['message'] ?? "Поле обязательно для заполнения";
                 continue;
             }
             
-            // Проверка email
+            // проверка email
             if ($rule['type'] === 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
                 $errors[$field] = "Введите корректный email адрес";
             }
             
-            // Проверка телефона
+            // проверка телефона
             if ($rule['type'] === 'phone') {
                 $clean_phone = preg_replace('/[^0-9]/', '', $value);
                 if (strlen($clean_phone) < 10) {
@@ -358,7 +325,7 @@
                 }
             }
             
-            // Проверка длины
+            // проверка длины
             if (isset($rule['min_length']) && strlen($value) < $rule['min_length']) {
                 $errors[$field] = "Минимальная длина: {$rule['min_length']} символов";
             }
@@ -371,9 +338,7 @@
         return $errors;
     }
 
-    /**
-     * Загрузка файла
-     */
+    // загрузка файла
     function uploadFile($file, $allowed_types = ['image/jpeg', 'image/png', 'image/gif'], $max_size = 2097152) {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             return ['success' => false, 'message' => 'Ошибка загрузки файла'];
@@ -399,18 +364,13 @@
         return ['success' => false, 'message' => 'Ошибка при сохранении файла'];
     }
 
-    /**
-     * Генерация QR-кода (заглушка)
-     */
+    // генерация QR-кода (заглушка)
     function generateQRCode($data) {
-        // В реальном проекте используйте библиотеку для генерации QR-кодов
         $qr_data = urlencode($data);
         return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={$qr_data}";
     }
 
-    /**
-     * Получить IP адрес пользователя
-     */
+    // получить IP адрес пользователя
     function getUserIP() {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             return $_SERVER['HTTP_CLIENT_IP'];
@@ -421,9 +381,7 @@
         }
     }
 
-    /**
-     * Логирование ошибок
-     */
+    // логирование ошибок
     function logError($error, $context = []) {
         $log_file = __DIR__ . '/../logs/errors.log';
         $timestamp = date('Y-m-d H:i:s');
@@ -443,9 +401,7 @@
         file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
     }
 
-    /**
-     * Безопасный вывод данных
-     */
+    // безопасный вывод данных
     function safeOutput($data) {
         if (is_array($data)) {
             return array_map('safeOutput', $data);
@@ -453,9 +409,7 @@
         return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
     }
 
-    /**
-     * Редирект с сообщением
-     */
+    // редирект с сообщением
     function redirectWithMessage($url, $message, $type = 'success') {
         $_SESSION['flash_message'] = $message;
         $_SESSION['flash_type'] = $type;
@@ -463,9 +417,7 @@
         exit();
     }
 
-    /**
-     * Показать flash сообщение
-     */
+    // показать flash сообщение
     function showFlashMessage() {
         if (isset($_SESSION['flash_message'])) {
             $message = $_SESSION['flash_message'];
@@ -479,9 +431,7 @@
         return '';
     }
 
-    /**
-     * Генерация случайного пароля
-     */
+    // генерация случайного пароля
     function generateRandomPassword($length = 8) {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
         $password = '';
@@ -491,9 +441,7 @@
         return $password;
     }
 
-    /**
-     * Проверка времени работы
-     */
+    // Проверка времени работы
     function isWorkingHours() {
         $current_hour = (int)date('H');
         $current_day = date('N'); // 1-7 (Понедельник-Воскресенье)
@@ -510,9 +458,7 @@
         }
     }
 
-    /**
-     * Получить ближайшую доступную дату
-     */
+    // получить ближайшую доступную дату
     function getNextAvailableDate($db, $master_id = null) {
         $date = date('Y-m-d');
         
@@ -520,11 +466,11 @@
             $check_date = date('Y-m-d', strtotime("+$i days"));
             $day_of_week = date('N', strtotime($check_date));
             
-            // Проверяем, является ли день выходным по общему графику
-            if ($day_of_week == 7) continue; // Воскресенье
+            // проверяем, является ли день выходным по общему графику
+            if ($day_of_week == 7) continue; // воскресенье
             
             if ($master_id) {
-                // Проверяем график конкретного мастера
+                // проверяем график конкретного мастера
                 $stmt = $db->prepare("
                     SELECT is_working_day 
                     FROM work_schedule 

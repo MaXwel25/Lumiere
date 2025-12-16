@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Обработка добавления/редактирования мастера
+// обработка добавления/редактирования мастера
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
     $full_name = $_POST['full_name'] ?? '';
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     
     if ($id) {
-        // Редактирование существующего мастера
+        // редактирование существующего мастера
         $stmt = $db->prepare("
             UPDATE masters 
             SET full_name = ?, phone = ?, specialization = ?, hourly_rate = ?, is_active = ?, updated_at = NOW() 
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$full_name, $phone, $specialization, $hourly_rate, $is_active, $id]);
         $message = "Мастер успешно обновлен";
     } else {
-        // Добавление нового мастера
+        // добавление нового мастера
         $stmt = $db->prepare("
             INSERT INTO masters (full_name, phone, specialization, hourly_rate, is_active) 
             VALUES (?, ?, ?, ?, ?)
@@ -32,11 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Обработка удаления мастера
+// обработка удаления мастера
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     
-    // Проверяем, есть ли у мастера активные записи
+    // проверяем, есть ли у мастера активные записи
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE master_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
@@ -50,13 +50,13 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// Получение всех мастеров
+// получение всех мастеров
 $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-// Формируем запрос с поиском
+// формируем запрос с поиском
 $where = "WHERE 1=1";
 $params = [];
 
@@ -66,13 +66,13 @@ if ($search) {
     $params = array_fill(0, 3, $searchTerm);
 }
 
-// Общее количество мастеров
+// общее количество мастеров
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM masters $where");
 $stmt->execute($params);
 $totalMasters = $stmt->fetch()['total'];
 $totalPages = ceil($totalMasters / $limit);
 
-// Получаем мастеров для текущей страницы
+// получаем мастеров для текущей страницы
 $stmt = $db->prepare("
     SELECT 
         m.*,
@@ -91,7 +91,7 @@ $stmt = $db->prepare("
 $stmt->execute($params);
 $masters = $stmt->fetchAll();
 
-// Получаем мастера для редактирования
+// получаем мастера для редактирования
 $editMaster = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM masters WHERE id = ?");
@@ -108,7 +108,7 @@ if (isset($_GET['edit'])) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Стили такие же как в clients.php */
+        /* стили такие же как в clients.php */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -193,7 +193,7 @@ if (isset($_GET['edit'])) {
                 <a href="masters.php" class="btn btn-info">Сбросить</a>
             </form>
             
-            <!-- Форма добавления/редактирования -->
+            <!-- форма добавления/редактирования -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editMaster ? 'Редактирование мастера' : 'Добавление нового мастера'; ?></h2>
                 <form method="POST">
@@ -244,7 +244,7 @@ if (isset($_GET['edit'])) {
                 </form>
             </div>
             
-            <!-- Таблица мастеров -->
+            <!-- таблица мастеров -->
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -327,7 +327,7 @@ if (isset($_GET['edit'])) {
                 </table>
             </div>
             
-            <!-- Пагинация -->
+            <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
@@ -348,7 +348,7 @@ if (isset($_GET['edit'])) {
             </div>
             <?php endif; ?>
             
-            <!-- Статистика -->
+            <!-- статистика -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика мастеров</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -377,7 +377,7 @@ if (isset($_GET['edit'])) {
     </div>
     
     <script>
-    // Автоматическое форматирование телефона
+    // автоматическое форматирование телефона
     document.getElementById('phone')?.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 0) {

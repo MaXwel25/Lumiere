@@ -1,6 +1,6 @@
-// Основной скрипт приложения
+// основной скрипт приложения
 
-// Анимация при прокрутке
+// анимация при прокрутке
 const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
@@ -14,12 +14,12 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
-// Наблюдаем за элементами с классом .animate-on-scroll
+// наблюдаем за элементами с классом .animate-on-scroll
 document.addEventListener('DOMContentLoaded', function() {
     const animateElements = document.querySelectorAll('.animate-on-scroll');
     animateElements.forEach(el => observer.observe(el));
     
-    // Анимация появления карточек
+    // анимация появления карточек
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, index) => {
         card.style.opacity = '0';
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Функция для валидации форм
+// функция для валидации форм
 function validateForm(form) {
     let isValid = true;
     const requiredInputs = form.querySelectorAll('[required]');
@@ -63,7 +63,7 @@ function validateForm(form) {
     return isValid;
 }
 
-// Функция для AJAX запросов
+// функция для AJAX запросов
 async function makeRequest(url, method = 'GET', data = null) {
     try {
         const options = {
@@ -86,14 +86,14 @@ async function makeRequest(url, method = 'GET', data = null) {
     }
 }
 
-// Экспорт функций для использования в других файлах
+// экспорт функций для использования в других файлах
 window.app = {
     validateForm,
     makeRequest,
     showNotification: window.showNotification
 };
 
-// Функция для отладки - показывает какие кнопки кликаются
+// функция для отладки - показывает какие кнопки кликаются
 document.addEventListener('DOMContentLoaded', function() {
     const actionButtons = document.querySelectorAll('.action-buttons .btn, .action-buttons a.btn');
     
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             console.log('Кнопка нажата:', this.className, 'Href:', this.href);
             
-            // Предотвращаем стандартное поведение для кнопок-ссылок с href="#"
+            // предотвращаем стандартное поведение для кнопок-ссылок с href="#"
             if (this.getAttribute('href') === '#' || 
                 this.getAttribute('href') === 'javascript:void(0)') {
                 e.preventDefault();
@@ -109,14 +109,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Убедимся, что все кнопки имеют правильный курсор
+    // убедимся, что все кнопки имеют правильный курсор
     const allButtons = document.querySelectorAll('button, a.btn');
     allButtons.forEach(btn => {
         btn.style.cursor = 'pointer';
     });
 });
 
-// Улучшенная функция для печати чека
+// улучшенная функция для печати чека
 function printReceipt(receiptId) {
     if (!receiptId) {
         alert('Ошибка: ID чека не указан');
@@ -125,7 +125,7 @@ function printReceipt(receiptId) {
     
     console.log('Печать чека:', receiptId);
     
-    // Открываем новое окно для печати
+    // открываем новое окно для печати
     const printWindow = window.open('print_receipt.php?id=' + receiptId, '_blank');
     
     if (!printWindow) {
@@ -136,7 +136,7 @@ function printReceipt(receiptId) {
     printWindow.focus();
 }
 
-// Улучшенная функция для просмотра деталей чека
+// улучшенная функция для просмотра деталей чека
 function showReceiptDetails(receiptId) {
     if (!receiptId) {
         alert('Ошибка: ID чека не указан');
@@ -145,7 +145,7 @@ function showReceiptDetails(receiptId) {
     
     console.log('Просмотр чека:', receiptId);
     
-    // Показываем загрузку
+    // показываем загрузку
     document.getElementById('receiptDetails').innerHTML = `
         <div style="text-align: center; padding: 20px;">
             <i class="fas fa-spinner fa-spin fa-2x"></i>
@@ -153,10 +153,10 @@ function showReceiptDetails(receiptId) {
         </div>
     `;
     
-    // Показываем модальное окно
+    // показываем модальное окно
     document.getElementById('receiptModal').style.display = 'block';
     
-    // Загружаем данные
+    // загружаем данные
     fetch('get_receipt_details.php?id=' + receiptId)
         .then(response => {
             if (!response.ok) {
@@ -179,7 +179,7 @@ function showReceiptDetails(receiptId) {
         });
 }
 
-// Альтернативная версия функции showReceiptDetails без fetch (если файла нет)
+// альтернативная версия функции showReceiptDetails без fetch (если файла нет)
 function showReceiptDetailsSimple(receiptId) {
     const receipt = {
         id: receiptId,
@@ -219,12 +219,12 @@ function showReceiptDetailsSimple(receiptId) {
     document.getElementById('receiptModal').style.display = 'block';
 }
 
-// Функция для закрытия модального окна
+// зункция для закрытия модального окна
 function closeReceiptModal() {
     document.getElementById('receiptModal').style.display = 'none';
 }
 
-// Закрытие модального окна при клике вне его
+// закрытие модального окна при клике вне его
 document.getElementById('receiptModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeReceiptModal();

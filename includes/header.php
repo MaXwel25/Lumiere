@@ -12,7 +12,7 @@ require_once 'config/database.php';
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Верхняя панель контактов -->
+    <!-- верхняя панель контактов -->
     <div class="top-bar">
         <div class="container">
             <div class="top-bar-content">
@@ -29,11 +29,11 @@ require_once 'config/database.php';
         </div>
     </div>
 
-    <!-- Основная навигация -->
+    <!-- основная навигация -->
     <nav class="main-nav">
         <div class="container">
             <div class="nav-content">
-                <!-- Логотип -->
+                <!-- логотип -->
                 <a href="index.php" class="logo">
                     <div class="logo-icon">
                         <i class="fas fa-cut"></i>
@@ -44,7 +44,7 @@ require_once 'config/database.php';
                     </div>
                 </a>
 
-                <!-- Меню навигации -->
+                <!-- меню навигации -->
                 <ul class="nav-menu">
                     <li><a href="index.php" <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'class="active"' : ''; ?>>
                         <i class="fas fa-home"></i> Главная
@@ -63,14 +63,14 @@ require_once 'config/database.php';
                     </a></li>
                 </ul>
 
-                <!-- Кнопка для админки -->
+                <!-- кнопка для админки -->
                 <div class="nav-actions">
                     <a href="http://localhost/admin/login.php" class="btn btn-admin">
                         <i class="fas fa-lock"></i> Админка
                     </a>
                 </div>
 
-                <!-- Кнопка мобильного меню -->
+                <!-- кнопка мобильного меню -->
                 <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Меню">
                     <i class="fas fa-bars"></i>
                 </button>
@@ -78,7 +78,7 @@ require_once 'config/database.php';
         </div>
     </nav>
 
-    <!-- Мобильное меню -->
+    <!-- мобильное меню -->
     <div class="mobile-nav" id="mobileNav">
         <div class="mobile-nav-menu">
             <a href="index.php" <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'class="active"' : ''; ?>>

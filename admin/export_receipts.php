@@ -3,12 +3,12 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Устанавливаем заголовки для скачивания Excel файла
+// устанавливаем заголовки для скачивания Excel файла
 header('Content-Type: application/vnd.ms-excel');
 header('Content-Disposition: attachment; filename="receipts_' . date('Y-m-d_H-i') . '.xls"');
 header('Cache-Control: max-age=0');
 
-// Получаем параметры фильтров (те же, что и в receipts.php)
+// получаем параметры фильтров (те же, что и в receipts.php)
 $start_date = $_GET['start_date'] ?? date('Y-m-01');
 $end_date = $_GET['end_date'] ?? date('Y-m-t');
 $payment_status = $_GET['payment_status'] ?? '';
@@ -16,7 +16,7 @@ $payment_method = $_GET['payment_method'] ?? '';
 $master_id = $_GET['master_id'] ?? '';
 $search = $_GET['search'] ?? '';
 
-// Формируем условия запроса (аналогично receipts.php)
+// формируем условия запроса (аналогично receipts.php)
 $where = "WHERE r.issued_at BETWEEN :start_date AND :end_date + INTERVAL 1 DAY";
 $params = [
     ':start_date' => $start_date,
@@ -43,7 +43,7 @@ if ($search) {
     $params[':search'] = "%$search%";
 }
 
-// Получаем все чеки без пагинации
+// получаем все чеки без пагинации
 $query = "
     SELECT 
         r.id as receipt_id,
@@ -84,7 +84,7 @@ $stmt = $db->prepare($query);
 $stmt->execute($params);
 $receipts = $stmt->fetchAll();
 
-// Начинаем вывод Excel (HTML таблица, которую Excel понимает)
+// начинаем вывод Excel (HTML таблица, которую Excel понимает)
 echo '<!DOCTYPE html>';
 echo '<html>';
 echo '<head>';
@@ -142,7 +142,7 @@ foreach ($receipts as $receipt) {
     echo '</tr>';
 }
 
-// Итоговая строка
+// итоговая строка
 $stats_query = "
     SELECT 
         COUNT(*) as total_count,
@@ -166,7 +166,7 @@ echo '</tr>';
 echo '</tbody>';
 echo '</table>';
 
-// Добавляем лист со статистикой
+// добавляем лист со статистикой
 echo '<br><br><br>';
 echo '<h3>Статистика по методам оплаты</h3>';
 

@@ -1,11 +1,11 @@
 <?php
-// Настройки базы данных
+// настройки базы данных
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'barbershop');
 define('DB_USER', 'maxwell25');
 define('DB_PASS', 'q1w2e3r4t5y6');
 
-// Создаем подключение
+// создаем подключение
 function getDBConnection() {
     try {
         $conn = new PDO(

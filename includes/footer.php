@@ -1,4 +1,4 @@
-<!-- Футер -->
+<!-- футер -->
 <footer class="footer">
     <div class="container">
         <div class="footer-content">
@@ -40,7 +40,7 @@
 </footer>
 
 <script>
-    // Мобильное меню
+    // мобильное меню
     document.addEventListener('DOMContentLoaded', function() {
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const mobileNav = document.getElementById('mobileNav');
@@ -51,7 +51,7 @@
                 document.body.style.overflow = mobileNav.style.display === 'block' ? 'hidden' : 'auto';
             });
             
-            // Закрытие меню при клике на ссылку
+            // закрытие меню при клике на ссылку
             mobileNav.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', function() {
                     mobileNav.style.display = 'none';
@@ -59,7 +59,7 @@
                 });
             });
             
-            // Закрытие меню при клике вне его
+            // закрытие меню при клике вне его
             document.addEventListener('click', function(e) {
                 if (mobileNav.style.display === 'block' && 
                     !mobileNav.contains(e.target) && 
@@ -70,7 +70,7 @@
             });
         }
         
-        // Адаптивная навигация
+        // адаптивная навигация
         window.addEventListener('resize', function() {
             if (window.innerWidth > 992 && mobileNav) {
                 mobileNav.style.display = 'none';

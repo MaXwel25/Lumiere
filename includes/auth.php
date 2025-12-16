@@ -3,34 +3,27 @@
 
 session_start();
 
-// Конфигурация безопасности
+// конфигурация безопасности
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOCKOUT_TIME', 900); // 15 минут в секундах
 
-/**
- * Проверка, авторизован ли администратор
- */
+// проверка, авторизован ли администратор
 function isAdminLoggedIn() {
     return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 }
 
-/**
- * Проверка, авторизован ли клиент
- */
+// проверка, авторизован ли клиент
 function isClientLoggedIn() {
     return isset($_SESSION['client_id']) && $_SESSION['client_id'] > 0;
 }
 
-/**
- * Получить ID текущего клиента
- */
+// получить ID текущего клиента
 function getCurrentClientId() {
     return $_SESSION['client_id'] ?? null;
 }
 
-/**
- * Получить данные текущего клиента
- */
+// получить данные текущего клиента
+
 function getCurrentClientData($db) {
     if (!isClientLoggedIn()) {
         return null;
@@ -42,11 +35,10 @@ function getCurrentClientData($db) {
     return $stmt->fetch();
 }
 
-/**
- * Вход администратора
- */
+// Вход администратора
+
 function adminLogin($password, $correct_password) {
-    // Проверка блокировки
+    // проверка блокировки
     if (isAdminLockedOut()) {
         return [
             'success' => false,
@@ -55,12 +47,12 @@ function adminLogin($password, $correct_password) {
     }
     
     if ($password === $correct_password) {
-        // Успешный вход
+        // успешный вход
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_login_time'] = time();
-        $_SESSION['login_attempts'] = 0; // Сброс счетчика
+        $_SESSION['login_attempts'] = 0; // сброс счетчика
         
-        // Логирование входа
+        // логирование входа
         logAdminLogin($_SERVER['REMOTE_ADDR'], true);
         
         return [
@@ -68,10 +60,10 @@ function adminLogin($password, $correct_password) {
             'message' => 'Вход выполнен успешно'
         ];
     } else {
-        // Неудачная попытка
+        // неудачная попытка
         incrementLoginAttempts();
         
-        // Логирование неудачной попытки
+        // логирование неудачной попытки
         logAdminLogin($_SERVER['REMOTE_ADDR'], false);
         
         $attempts_left = MAX_LOGIN_ATTEMPTS - ($_SESSION['login_attempts'] ?? 0);
@@ -83,17 +75,15 @@ function adminLogin($password, $correct_password) {
     }
 }
 
-/**
- * Вход клиента
- */
+// вход клиента
 function clientLogin($db, $phone, $name = null) {
-    // Поиск клиента по телефону
+    // поиск клиента по телефону
     $stmt = $db->prepare("SELECT * FROM clients WHERE phone = ?");
     $stmt->execute([$phone]);
     $client = $stmt->fetch();
     
     if ($client) {
-        // Клиент найден
+        // клиент найден
         $_SESSION['client_id'] = $client['id'];
         $_SESSION['client_name'] = $client['full_name'];
         $_SESSION['client_phone'] = $client['phone'];
@@ -104,7 +94,7 @@ function clientLogin($db, $phone, $name = null) {
             'client' => $client
         ];
     } else if ($name) {
-        // Создание нового клиента
+        // создание нового клиента
         $stmt = $db->prepare("INSERT INTO clients (full_name, phone) VALUES (?, ?)");
         if ($stmt->execute([$name, $phone])) {
             $client_id = $db->lastInsertId();
@@ -127,23 +117,21 @@ function clientLogin($db, $phone, $name = null) {
     ];
 }
 
-/**
- * Быстрый вход/регистрация клиента
- */
+// быстрый вход/регистрация клиента
 function quickClientAuth($db, $name, $phone) {
-    // Очистка и форматирование телефона
+    // очистка и форматирование телефона
     $phone = preg_replace('/[^0-9]/', '', $phone);
     if (strlen($phone) === 11 && $phone[0] === '8') {
         $phone = '7' . substr($phone, 1);
     }
     
-    // Проверка существования клиента
+    // проверка существования клиента
     $stmt = $db->prepare("SELECT * FROM clients WHERE phone = ?");
     $stmt->execute([$phone]);
     $client = $stmt->fetch();
     
     if ($client) {
-        // Обновление имени, если оно изменилось
+        // обновление имени, если оно изменилось
         if ($client['full_name'] !== $name) {
             $stmt = $db->prepare("UPDATE clients SET full_name = ? WHERE id = ?");
             $stmt->execute([$name, $client['id']]);
@@ -155,7 +143,7 @@ function quickClientAuth($db, $name, $phone) {
         
         return $client['id'];
     } else {
-        // Создание нового клиента
+        // создание нового клиента
         $stmt = $db->prepare("INSERT INTO clients (full_name, phone) VALUES (?, ?)");
         if ($stmt->execute([$name, $phone])) {
             $client_id = $db->lastInsertId();
@@ -171,27 +159,21 @@ function quickClientAuth($db, $name, $phone) {
     return false;
 }
 
-/**
- * Выход администратора
- */
+// выход администратора
 function adminLogout() {
     unset($_SESSION['admin_logged_in']);
     unset($_SESSION['admin_login_time']);
     session_destroy();
 }
 
-/**
- * Выход клиента
- */
+// Выход клиента
 function clientLogout() {
     unset($_SESSION['client_id']);
     unset($_SESSION['client_name']);
     unset($_SESSION['client_phone']);
 }
 
-/**
- * Проверка блокировки администратора
- */
+// проверка блокировки администратора
 function isAdminLockedOut() {
     if (!isset($_SESSION['lockout_time'])) {
         return false;
@@ -204,16 +186,14 @@ function isAdminLockedOut() {
         return true;
     }
     
-    // Сброс блокировки, если время истекло
+    // сброс блокировки, если время истекло
     unset($_SESSION['lockout_time']);
     $_SESSION['login_attempts'] = 0;
     
     return false;
 }
 
-/**
- * Увеличение счетчика попыток входа
- */
+// увеличение счетчика попыток входа
 function incrementLoginAttempts() {
     if (!isset($_SESSION['login_attempts'])) {
         $_SESSION['login_attempts'] = 1;
@@ -221,22 +201,20 @@ function incrementLoginAttempts() {
         $_SESSION['login_attempts']++;
     }
     
-    // Если превышено максимальное количество попыток - блокировка
+    // если превышено максимальное количество попыток - блокировка
     if ($_SESSION['login_attempts'] >= MAX_LOGIN_ATTEMPTS) {
         $_SESSION['lockout_time'] = time();
     }
 }
 
-/**
- * Логирование попыток входа администратора
- */
+// логирование попыток входа администратора
 function logAdminLogin($ip, $success) {
     $log_file = __DIR__ . '/../logs/admin_login.log';
     $timestamp = date('Y-m-d H:i:s');
     $status = $success ? 'SUCCESS' : 'FAILED';
     $message = "[{$timestamp}] IP: {$ip} - {$status}\n";
     
-    // Создание директории для логов, если её нет
+    // создание директории для логов, если её нет
     $log_dir = dirname($log_file);
     if (!is_dir($log_dir)) {
         mkdir($log_dir, 0755, true);
@@ -245,9 +223,7 @@ function logAdminLogin($ip, $success) {
     file_put_contents($log_file, $message, FILE_APPEND | LOCK_EX);
 }
 
-/**
- * Защита от CSRF
- */
+// защита от CSRF
 function generateCsrfToken() {
     if (!isset($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -259,16 +235,14 @@ function validateCsrfToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-/**
- * Проверка прав доступа к админ-панели
- */
+// проверка прав доступа к админ-панели
 function requireAdminAuth() {
     if (!isAdminLoggedIn()) {
         header('Location: /admin/login.php');
         exit();
     }
     
-    // Проверка времени сессии (максимум 2 часа)
+    // проверка времени сессии (максимум 2 часа)
     if (isset($_SESSION['admin_login_time'])) {
         $session_duration = time() - $_SESSION['admin_login_time'];
         if ($session_duration > 7200) { // 2 часа в секундах
@@ -279,9 +253,7 @@ function requireAdminAuth() {
     }
 }
 
-/**
- * Проверка прав доступа к клиентской части
- */
+// проверка прав доступа к клиентской части
 function requireClientAuth() {
     if (!isClientLoggedIn()) {
         header('Location: /booking.php?auth=required');
@@ -289,9 +261,7 @@ function requireClientAuth() {
     }
 }
 
-/**
- * Безопасное хеширование паролей
- */
+// безопасное хеширование паролей
 function hashPassword($password) {
     return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 }
@@ -300,16 +270,12 @@ function verifyPassword($password, $hash) {
     return password_verify($password, $hash);
 }
 
-/**
- * Генерация безопасного токена
- */
+// генерация безопасного токена
 function generateSecureToken($length = 32) {
     return bin2hex(random_bytes($length / 2));
 }
 
-/**
- * Очистка входных данных
- */
+// очистка входных данных
 function sanitizeInput($data) {
     if (is_array($data)) {
         foreach ($data as $key => $value) {
@@ -324,25 +290,19 @@ function sanitizeInput($data) {
     return $data;
 }
 
-/**
- * Проверка email
- */
+// проверка email
 function isValidEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-/**
- * Проверка телефона
- */
+// Проверка телефона
 function isValidPhone($phone) {
     // Российские номера: +7 XXX XXX XX XX или 8 XXX XXX XX XX
     $pattern = '/^(\+7|8)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/';
     return preg_match($pattern, $phone);
 }
 
-/**
- * Форматирование телефона
- */
+// Форматирование телефона
 function formatPhone($phone) {
     $phone = preg_replace('/[^0-9]/', '', $phone);
     
@@ -355,13 +315,10 @@ function formatPhone($phone) {
                substr($phone, 7, 2) . '-' . 
                substr($phone, 9, 2);
     }
-    
     return $phone;
 }
 
-/**
- * Логирование действий
- */
+// Логирование действий
 function logAction($action, $details = null, $user_id = null, $user_type = 'admin') {
     $log_file = __DIR__ . '/../logs/actions.log';
     $timestamp = date('Y-m-d H:i:s');
@@ -374,7 +331,7 @@ function logAction($action, $details = null, $user_id = null, $user_type = 'admi
     }
     $log_entry .= " [IP: {$ip}, User-Agent: {$user_agent}]\n";
     
-    // Создание директории для логов, если её нет
+    // создание директории для логов, если её нет
     $log_dir = dirname($log_file);
     if (!is_dir($log_dir)) {
         mkdir($log_dir, 0755, true);
@@ -383,7 +340,7 @@ function logAction($action, $details = null, $user_id = null, $user_type = 'admi
     file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
 }
 
-// Инициализация CSRF токена при старте сессии
+// инициализация CSRF токена при старте сессии
 if (empty($_SESSION['csrf_token'])) {
     generateCsrfToken();
 }

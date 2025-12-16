@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Обработка добавления/редактирования услуги
+// обработка добавления/редактирования услуги
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
     $name = $_POST['name'] ?? '';
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     
     if ($id) {
-        // Редактирование существующей услуги
+        // редактирование существующей услуги
         $stmt = $db->prepare("
             UPDATE services 
             SET name = ?, description = ?, price = ?, duration_min = ?, 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$name, $description, $price, $duration_min, $category, $is_active, $id]);
         $message = "Услуга успешно обновлена";
     } else {
-        // Добавление новой услуги
+        // добавление новой услуги
         $stmt = $db->prepare("
             INSERT INTO services (name, description, price, duration_min, category, is_active) 
             VALUES (?, ?, ?, ?, ?, ?)
@@ -34,11 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Обработка удаления услуги
+// обработка удаления услуги
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     
-    // Проверяем, есть ли активные записи на эту услугу
+    // проверяем, есть ли активные записи на эту услугу
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE service_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
@@ -52,14 +52,14 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// Получение всех услуг
+// получение всех услуг
 $search = $_GET['search'] ?? '';
 $category = $_GET['category'] ?? '';
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-// Формируем запрос с фильтрами
+// формируем запрос с фильтрами
 $where = "WHERE 1=1";
 $params = [];
 
@@ -74,13 +74,13 @@ if ($category) {
     $params[] = $category;
 }
 
-// Общее количество услуг
+// общее количество услуг
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM services $where");
 $stmt->execute($params);
 $totalServices = $stmt->fetch()['total'];
 $totalPages = ceil($totalServices / $limit);
 
-// Получаем услуги для текущей страницы
+// получаем услуги для текущей страницы
 $stmt = $db->prepare("
     SELECT 
         s.*,
@@ -100,10 +100,10 @@ $stmt = $db->prepare("
 $stmt->execute($params);
 $services = $stmt->fetchAll();
 
-// Получаем уникальные категории для фильтра
+// получаем уникальные категории для фильтра
 $categories = $db->query("SELECT DISTINCT category FROM services WHERE category IS NOT NULL ORDER BY category")->fetchAll();
 
-// Получаем услугу для редактирования
+// получаем услугу для редактирования
 $editService = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM services WHERE id = ?");
@@ -120,7 +120,7 @@ if (isset($_GET['edit'])) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Стили такие же как в clients.php */
+        /* стили такие же как в clients.php */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -168,7 +168,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
+        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -186,7 +186,7 @@ if (isset($_GET['edit'])) {
             </ul>
         </div>
         
-        <!-- Основной контент -->
+        <!-- основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-concierge-bell"></i> Управление услугами</h1>
             
@@ -198,7 +198,7 @@ if (isset($_GET['edit'])) {
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
             
-            <!-- Фильтры -->
+            <!-- фильтры -->
             <form method="GET" class="search-form">
                 <input type="text" name="search" placeholder="Поиск по названию или описанию..." 
                        value="<?php echo htmlspecialchars($search); ?>">
@@ -215,7 +215,7 @@ if (isset($_GET['edit'])) {
                 <a href="services.php" class="btn btn-info">Сбросить</a>
             </form>
             
-            <!-- Форма добавления/редактирования -->
+            <!-- форма добавления/редактирования -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editService ? 'Редактирование услуги' : 'Добавление новой услуги'; ?></h2>
                 <form method="POST">
@@ -278,7 +278,7 @@ if (isset($_GET['edit'])) {
                 </form>
             </div>
             
-            <!-- Таблица услуг -->
+            <!-- таблица услуг -->
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -363,7 +363,7 @@ if (isset($_GET['edit'])) {
                 </table>
             </div>
             
-            <!-- Пагинация -->
+            <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
@@ -384,7 +384,7 @@ if (isset($_GET['edit'])) {
             </div>
             <?php endif; ?>
             
-            <!-- Статистика -->
+            <!-- статистика -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика услуг</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -418,7 +418,7 @@ if (isset($_GET['edit'])) {
                     </div>
                 </div>
                 
-                <!-- Топ услуг по популярности -->
+                <!-- топ услуг по популярности -->
                 <div style="margin-top: 20px;">
                     <h4>Самые популярные услуги</h4>
                     <?php

@@ -2,18 +2,18 @@
 require_once '../config/database.php';
 require_once '../config/admin_config.php';
 
-// Если уже авторизован, перенаправляем в админку
+// если уже авторизован, перенаправляем в админку
 if (isAdminLoggedIn()) {
     header('Location: dashboard.php');
     exit();
 }
 
-// Обработка формы входа
+// обработка формы входа
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     
-    // Проверяем пароль (в реальном проекте используйте хеширование!)
+    // проверяем пароль (в реальном проекте используйте хеширование!)
     if ($password === $admin_password) {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_login_time'] = time();

@@ -3,12 +3,12 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Обработка изменений статуса
+// обработка изменений статуса
 if (isset($_POST['change_status'])) {
     $id = intval($_POST['id']);
     $new_status = $_POST['status'];
     
-    // Проверяем, что статус допустим
+    // проверяем, что статус допустим
     $allowed_statuses = ['scheduled', 'completed', 'cancelled', 'no_show'];
     
     if (in_array($new_status, $allowed_statuses)) {
@@ -20,7 +20,7 @@ if (isset($_POST['change_status'])) {
     }
 }
 
-// Обработка быстрых действий
+// обработка быстрых действий
 if (isset($_GET['action'])) {
     $id = $_GET['id'] ?? null;
     
@@ -43,7 +43,7 @@ if (isset($_GET['action'])) {
     }
 }
 
-// Получаем все записи
+// получаем все записи
 $stmt = $db->query("
     SELECT a.*, 
            c.full_name as client_name, 
@@ -98,7 +98,7 @@ $appointments = $stmt->fetchAll();
         .action-buttons { display: flex; gap: 5px; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #3498db; color: white; }
         
-        /* Стили для формы изменения статуса */
+        /* стили для формы изменения статуса */
         .status-form {
             display: flex;
             gap: 8px;
@@ -183,7 +183,7 @@ $appointments = $stmt->fetchAll();
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
+        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -201,7 +201,7 @@ $appointments = $stmt->fetchAll();
             </ul>
         </div>
         
-        <!-- Основной контент -->
+        <!-- основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-calendar-alt"></i> Управление записями</h1>
             
@@ -254,7 +254,7 @@ $appointments = $stmt->fetchAll();
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <!-- Форма для изменения статуса -->
+                                        <!-- форма для изменения статуса -->
                                         <form method="POST" class="status-form" onsubmit="return confirmStatusChange(<?php echo $appointment['id']; ?>, this)">
                                             <input type="hidden" name="id" value="<?php echo $appointment['id']; ?>">
                                             <input type="hidden" name="change_status" value="1">
@@ -269,7 +269,7 @@ $appointments = $stmt->fetchAll();
                                             </button>
                                         </form>
                                         
-                                        <!-- Быстрые действия -->
+                                        <!-- быстрые действия -->
                                         <div class="quick-actions">
                                             <?php if ($appointment['status'] === 'scheduled'): ?>
                                             <a href="?action=complete&id=<?php echo $appointment['id']; ?>" 
@@ -304,7 +304,7 @@ $appointments = $stmt->fetchAll();
                 </table>
             </div>
             
-            <!-- Статистика записей -->
+            <!-- статистика записей -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 <h3>Статистика записей</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-top: 15px;">
@@ -317,7 +317,7 @@ $appointments = $stmt->fetchAll();
                     ];
                     
                     foreach ($statusStats as $status => $label):
-                        // Используем новую переменную для запроса, чтобы не перезаписывать $stmt
+                        // используем новую переменную для запроса, чтобы не перезаписывать $stmt
                         $countStmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE status = ?");
                         $countStmt->execute([$status]);
                         $result = $countStmt->fetch();
@@ -333,7 +333,7 @@ $appointments = $stmt->fetchAll();
         </div>
     </div>
     
-    <!-- Модальное окно для подтверждения изменения статуса -->
+    <!-- модальное окно для подтверждения изменения статуса -->
     <div id="statusModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -341,7 +341,7 @@ $appointments = $stmt->fetchAll();
                 <button class="close-modal" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody">
-                <!-- Контент будет добавлен через JavaScript -->
+                <!-- контент будет добавлен через JavaScript -->
             </div>
             <div class="modal-actions">
                 <button onclick="confirmStatusChange()" class="btn btn-success">Подтвердить</button>
@@ -351,26 +351,26 @@ $appointments = $stmt->fetchAll();
     </div>
     
     <script>
-    // Переменные для хранения данных модального окна
+    // переменные для хранения данных модального окна
     let currentAppointmentId = null;
     let currentForm = null;
     let newStatus = null;
     
-    // Функция для подтверждения изменения статуса
+    // функция для подтверждения изменения статуса
     function confirmStatusChange(appointmentId, form) {
-        if (!form) return true; // Если форма не передана, отправляем как есть
+        if (!form) return true; // если форма не передана, отправляем как есть
         
         const select = form.querySelector('select[name="status"]');
         const currentStatus = select.selectedOptions[0].text;
         const newStatusValue = select.value;
         const newStatusText = select.options[select.selectedIndex].text;
         
-        // Проверяем, изменился ли статус
+        // проверяем, изменился ли статус
         if (select.value === '<?php echo isset($appointment) ? $appointment["status"] : ""; ?>') {
             return false; // Статус не изменился
         }
         
-        // Отображаем модальное окно
+        // отображаем модальное окно
         document.getElementById('modalBody').innerHTML = `
             <p>Вы действительно хотите изменить статус записи #${appointmentId}?</p>
             <p><strong>Текущий статус:</strong> ${currentStatus}</p>
@@ -382,23 +382,23 @@ $appointments = $stmt->fetchAll();
         newStatus = newStatusValue;
         
         document.getElementById('statusModal').style.display = 'flex';
-        return false; // Предотвращаем отправку формы
+        return false; // предотвращаем отправку формы
     }
     
-    // Функция подтверждения изменения статуса из модального окна
+    // функция подтверждения изменения статуса из модального окна
     function confirmStatusChangeModal() {
         if (currentForm) {
-            // Устанавливаем выбранное значение в селект
+            // устанавливаем выбранное значение в селект
             const select = currentForm.querySelector('select[name="status"]');
             select.value = newStatus;
             
-            // Отправляем форму
+            // отправляем форму
             currentForm.submit();
         }
         closeModal();
     }
     
-    // Функция закрытия модального окна
+    // функция закрытия модального окна
     function closeModal() {
         document.getElementById('statusModal').style.display = 'none';
         currentAppointmentId = null;
@@ -406,7 +406,7 @@ $appointments = $stmt->fetchAll();
         newStatus = null;
     }
     
-    // Закрытие модального окна при клике вне его
+    // закрытие модального окна при клике вне его
     window.onclick = function(event) {
         const modal = document.getElementById('statusModal');
         if (event.target === modal) {
@@ -414,7 +414,7 @@ $appointments = $stmt->fetchAll();
         }
     }
     
-    // Подтверждение быстрых действий
+    // подтверждение быстрых действий
     document.querySelectorAll('.quick-action-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             const action = this.getAttribute('href').split('action=')[1].split('&')[0];
@@ -443,7 +443,7 @@ $appointments = $stmt->fetchAll();
         });
     });
     
-    // Автоматическое скрытие уведомлений через 5 секунд
+    // автоматическое скрытие уведомлений через 5 секунд
     setTimeout(function() {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {

@@ -3,19 +3,19 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Фильтры
+// фильтры
 $start_date = $_GET['start_date'] ?? date('Y-m-01');
 $end_date = $_GET['end_date'] ?? date('Y-m-t');
 $payment_status = $_GET['payment_status'] ?? '';
 $payment_method = $_GET['payment_method'] ?? '';
 $master_id = $_GET['master_id'] ?? '';
 
-// Пагинация
+//пагинация
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 25;
 $offset = ($page - 1) * $limit;
 
-// Формируем условия запроса
+// формируем условия запроса
 $where = "WHERE r.issued_at BETWEEN :start_date AND :end_date + INTERVAL 1 DAY";
 $params = [
     ':start_date' => $start_date,
@@ -37,7 +37,7 @@ if ($master_id) {
     $params[':master_id'] = $master_id;
 }
 
-// Получаем общее количество чеков
+// получаем общее количество чеков
 $count_query = "
     SELECT COUNT(*) as total 
     FROM receipts r
@@ -51,7 +51,7 @@ $stmt->execute($params);
 $totalReceipts = $stmt->fetch()['total'];
 $totalPages = ceil($totalReceipts / $limit);
 
-// Получаем чеки для текущей страницы
+// получаем чеки для текущей страницы
 $query = "
     SELECT 
         r.*,
@@ -77,10 +77,10 @@ $stmt = $db->prepare($query);
 $stmt->execute($params);
 $receipts = $stmt->fetchAll();
 
-// Получаем мастеров для фильтра
+// получаем мастеров для фильтра
 $masters = $db->query("SELECT id, full_name FROM masters ORDER BY full_name")->fetchAll();
 
-// Обработка изменения статуса оплаты
+// обработка изменения статуса оплаты
 if (isset($_GET['mark_paid'])) {
     $receipt_id = intval($_GET['mark_paid']);
     
@@ -91,7 +91,7 @@ if (isset($_GET['mark_paid'])) {
     exit();
 }
 
-// Обработка отмены оплаты
+// обработка отмены оплаты
 if (isset($_GET['mark_cancelled'])) {
     $receipt_id = intval($_GET['mark_cancelled']);
     
@@ -102,7 +102,7 @@ if (isset($_GET['mark_cancelled'])) {
     exit();
 }
 
-// Статистика
+// статистика
 $stats_query = "
     SELECT 
         COUNT(*) as total_count,
@@ -120,10 +120,10 @@ $stmt = $db->prepare($stats_query);
 $stmt->execute([':start_date' => $start_date, ':end_date' => $end_date]);
 $stats = $stmt->fetch();
 
-// Способы оплаты для фильтра
+// способы оплаты для фильтра
 $payment_methods = $db->query("SELECT DISTINCT payment_method FROM receipts")->fetchAll();
 
-// Статусы оплаты для фильтра
+// статусы оплаты для фильтра
 $payment_statuses = [
     'pending' => 'Ожидает оплаты',
     'paid' => 'Оплачено',
@@ -191,7 +191,7 @@ $payment_statuses = [
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
+        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -209,11 +209,11 @@ $payment_statuses = [
             </ul>
         </div>
         
-        <!-- Основной контент -->
+        <!-- основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-receipt"></i> Управление чеками</h1>
             
-            <!-- Фильтры -->
+            <!-- фильтры -->
             <div class="search-form">
                 <form method="GET">
                     <div class="form-row">
@@ -290,7 +290,7 @@ $payment_statuses = [
                 </form>
             </div>
             
-            <!-- Статистика -->
+            <!-- статистика -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number"><?php echo $stats['total_count']; ?></div>
@@ -318,7 +318,7 @@ $payment_statuses = [
                 </div>
             </div>
             
-            <!-- Таблица чеков -->
+            <!-- таблица чеков -->
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -457,7 +457,7 @@ $payment_statuses = [
                 </table>
             </div>
             
-            <!-- Пагинация -->
+            <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
@@ -478,7 +478,7 @@ $payment_statuses = [
             </div>
             <?php endif; ?>
             
-            <!-- Сводная статистика по методам оплаты -->
+            <!-- сводная статистика по методам оплаты -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика по методам оплаты</h3>
                 <?php
@@ -527,7 +527,7 @@ $payment_statuses = [
         </div>
     </div>
     
-    <!-- Модальное окно для деталей чека -->
+    <!-- модальное окно для деталей чека -->
     <div id="receiptModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -542,26 +542,26 @@ $payment_statuses = [
     </div>
     
     <script>
-    // Печать списка чеков
+    // печать списка чеков
     function printReceipts() {
         window.print();
     }
     
-    // Экспорт в Excel
+    // экспорт в Excel
     function exportToExcel() {
-        // Создаем URL с параметрами для экспорта
+        // создаем URL с параметрами для экспорта
         const params = new URLSearchParams(window.location.search);
         params.set('export', 'excel');
         window.location.href = 'export_receipts.php?' + params.toString();
     }
     
-    // Печать отдельного чека
+    // печать отдельного чека
     function printReceipt(receiptId) {
         const printWindow = window.open('print_receipt.php?id=' + receiptId, '_blank');
         printWindow.focus();
     }
     
-    // Показать детали чека
+    // показать детали чека
     function showReceiptDetails(receiptId) {
         fetch('get_receipt_details.php?id=' + receiptId)
             .then(response => response.text())
@@ -575,21 +575,21 @@ $payment_statuses = [
             });
     }
     
-    // Закрыть модальное окно
+    // закрыть модальное окно
     function closeReceiptModal() {
         document.getElementById('receiptModal').style.display = 'none';
     }
     
-    // Закрыть модальное окно при клике вне его
+    // закрыть модальное окно при клике вне его
     document.getElementById('receiptModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeReceiptModal();
         }
     });
     
-    // Автоматическое заполнение дат (последние 30 дней)
+    // автоматическое заполнение дат (последние 30 дней)
     document.addEventListener('DOMContentLoaded', function() {
-        // Если даты не установлены, установить последние 30 дней
+        // если даты не установлены, установить последние 30 дней
         if (!document.getElementById('start_date').value) {
             const end = new Date();
             const start = new Date();

@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../config/admin_config.php';
 requireAdminAuth();
 
-// Обработка добавления/редактирования клиента
+// обработка добавления/редактирования клиента
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
     $full_name = $_POST['full_name'] ?? '';
@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? null;
     
     if ($id) {
-        // Редактирование существующего клиента
+        // редактирование существующего клиента
         $stmt = $db->prepare("
             UPDATE clients 
             SET full_name = ?, phone = ?, email = ?, updated_at = NOW() 
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$full_name, $phone, $email, $id]);
         $message = "Клиент успешно обновлен";
     } else {
-        // Добавление нового клиента
+        // добавление нового клиента
         $stmt = $db->prepare("
             INSERT INTO clients (full_name, phone, email) 
             VALUES (?, ?, ?)
@@ -30,11 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Обработка удаления клиента
+// обработка удаления клиента
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     
-    // Проверяем, есть ли у клиента активные записи
+    // проверяем, есть ли у клиента активные записи
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE client_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
@@ -48,13 +48,13 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// Получение всех клиентов
+// получение всех клиентов
 $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-// Формируем запрос с поиском
+// формируем запрос с поиском
 $where = "WHERE 1=1";
 $params = [];
 
@@ -64,13 +64,13 @@ if ($search) {
     $params = array_fill(0, 3, $searchTerm);
 }
 
-// Общее количество клиентов
+// общее количество клиентов
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients $where");
 $stmt->execute($params);
 $totalClients = $stmt->fetch()['total'];
 $totalPages = ceil($totalClients / $limit);
 
-// Получаем клиентов для текущей страницы
+// получаем клиентов для текущей страницы
 $stmt = $db->prepare("
     SELECT 
         c.*,
@@ -86,7 +86,7 @@ $stmt = $db->prepare("
 $stmt->execute($params);
 $clients = $stmt->fetchAll();
 
-// Получаем клиента для редактирования
+// получаем клиента для редактирования
 $editClient = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM clients WHERE id = ?");
@@ -146,7 +146,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
+        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -164,7 +164,7 @@ if (isset($_GET['edit'])) {
             </ul>
         </div>
         
-        <!-- Основной контент -->
+        <!-- основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-users"></i> Управление клиентами</h1>
             
@@ -176,7 +176,7 @@ if (isset($_GET['edit'])) {
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
             
-            <!-- Поиск -->
+            <!-- поиск -->
             <form method="GET" class="search-form">
                 <input type="text" name="search" placeholder="Поиск по имени, телефону или email..." 
                        value="<?php echo htmlspecialchars($search); ?>">
@@ -184,7 +184,7 @@ if (isset($_GET['edit'])) {
                 <a href="clients.php" class="btn btn-info">Сбросить</a>
             </form>
             
-            <!-- Форма добавления/редактирования -->
+            <!-- форма добавления/редактирования -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editClient ? 'Редактирование клиента' : 'Добавление нового клиента'; ?></h2>
                 <form method="POST">
@@ -219,7 +219,7 @@ if (isset($_GET['edit'])) {
                 </form>
             </div>
             
-            <!-- Таблица клиентов -->
+            <!-- таблица клиентов -->
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -282,7 +282,7 @@ if (isset($_GET['edit'])) {
                 </table>
             </div>
             
-            <!-- Пагинация -->
+            <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
@@ -303,7 +303,7 @@ if (isset($_GET['edit'])) {
             </div>
             <?php endif; ?>
             
-            <!-- Статистика -->
+            <!-- статистика -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика клиентов</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -332,7 +332,7 @@ if (isset($_GET['edit'])) {
     </div>
     
     <script>
-    // Автоматическое форматирование телефона
+    // автоматическое форматирование телефона
     document.getElementById('phone')?.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 0) {
