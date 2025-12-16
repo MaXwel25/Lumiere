@@ -53,9 +53,10 @@ $masters = $stmt->fetchAll();
             <?php foreach ($masters as $master): ?>
             <div class="master-card">
                 <div class="master-photo">
-                    <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
+                    <img src="photo/<?php echo htmlspecialchars($master['id']); ?>.jpg" 
                          alt="<?php echo htmlspecialchars($master['full_name']); ?>" 
-                         loading="lazy">
+                         loading="lazy"
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=No+Photo&amp;bg=<?php echo urlencode('#2c3e50'); ?>&amp;color=<?php echo urlencode('#d4af37'); ?>';">
                 </div>
                 <div class="master-info">
                     <h3><?php echo htmlspecialchars($master['full_name']); ?></h3>
