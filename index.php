@@ -1,15 +1,15 @@
 <?php
 require_once 'includes/header.php';
 
-// Получаем 4 популярные услуги для главной страницы
+// получаем 4 популярные услуги для главной страницы
 $stmt = $db->query("SELECT * FROM services WHERE is_active = TRUE ORDER BY price DESC LIMIT 4");
 $services = $stmt->fetchAll();
 
-// Получаем 3 лучших мастера
+// получаем 3 лучших мастера
 $stmt = $db->query("SELECT * FROM masters WHERE is_active = TRUE LIMIT 3");
 $masters = $stmt->fetchAll();
 ?>
-<!-- Герой-секция -->
+<!-- герой-секция -->
 <section class="hero">
     <div class="container">
         <div class="hero-content">
@@ -20,7 +20,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Услуги -->
+<!-- услуги -->
 <section class="section services-section">
     <div class="container">
         <h2 class="section-title">Популярные услуги</h2>
@@ -45,7 +45,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Мастера -->
+<!-- мастера -->
 <section class="section masters-section">
     <div class="container">
         <h2 class="section-title">Наши мастера</h2>
@@ -75,7 +75,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Почему выбирают нас -->
+<!-- почему выбирают нас -->
 <section class="section" style="background-color: var(--light-gray);">
     <div class="container">
         <h2 class="section-title">Почему выбирают нас</h2>
@@ -112,7 +112,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Связь с админкой -->
+<!-- связь с админкой -->
 <section class="section" style="background-color: #2c3e50; color: white; text-align: center;">
     <div class="container">
         <h2 class="section-title" style="color: white;">Для сотрудников</h2>

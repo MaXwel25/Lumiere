@@ -1,18 +1,19 @@
 <?php
 require_once 'includes/header.php';
 
-// Получаем все активные услуги
+// получаем все активные услуги
 $stmt = $db->query("SELECT * FROM services WHERE is_active = TRUE ORDER BY category, price");
 $services = $stmt->fetchAll();
 
-// Группируем услуги по категориям
+// группируем услуги по категориям
 $servicesByCategory = [];
 foreach ($services as $service) {
     $category = $service['category'] ?: 'Другие услуги';
     $servicesByCategory[$category][] = $service;
 }
 ?>
-<!-- Герой-секция -->
+
+// Герой-секция
 <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1541938832687-46029622c3d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="hero-content">
@@ -22,7 +23,7 @@ foreach ($services as $service) {
     </div>
 </section>
 
-<!-- Услуги по категориям -->
+<!-- услуги по категориям -->
 <section class="section services-section">
     <div class="container">
         <?php foreach ($servicesByCategory as $category => $categoryServices): ?>
@@ -48,7 +49,7 @@ foreach ($services as $service) {
     </div>
 </section>
 
-<!-- Преимущества -->
+<!-- преимущества -->
 <section class="section" style="background-color: var(--secondary-color); color: white;">
     <div class="container">
         <h2 class="section-title" style="color: white;">Преимущества наших услуг</h2>

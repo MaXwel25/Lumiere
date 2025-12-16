@@ -1,11 +1,11 @@
 <?php
 require_once 'includes/header.php';
 
-// Получаем всех активных мастеров
+// получаем всех активных мастеров
 $stmt = $db->query("SELECT * FROM masters WHERE is_active = TRUE ORDER BY full_name");
 $masters = $stmt->fetchAll();
 ?>
-<!-- Герой-секция -->
+<!-- герой-секция -->
 <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1581488417723-78f9bce2f099?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="hero-content">
@@ -15,7 +15,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Мастера -->
+<!-- мастера -->
 <section class="section masters-section">
     <div class="container">
         <h2 class="section-title">Встречайте нашу команду</h2>
@@ -54,7 +54,7 @@ $masters = $stmt->fetchAll();
     </div>
 </section>
 
-<!-- Отзывы -->
+<!-- отзывы -->
 <section class="section" style="background-color: var(--light-gray);">
     <div class="container">
         <h2 class="section-title">Отзывы наших клиентов</h2>

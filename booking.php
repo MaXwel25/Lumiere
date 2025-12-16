@@ -1,15 +1,15 @@
 <?php
 require_once 'includes/header.php';
 
-// Получаем активных мастеров для выбора
+// получаем активных мастеров для выбора
 $stmt = $db->query("SELECT * FROM masters WHERE is_active = TRUE ORDER BY full_name");
 $activeMasters = $stmt->fetchAll();
 
-// Получаем активные услуги для выбора
+// получаем активные услуги для выбора
 $stmt = $db->query("SELECT * FROM services WHERE is_active = TRUE ORDER BY name");
 $activeServices = $stmt->fetchAll();
 
-// Обработка формы записи
+// обработка формы записи
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $appointment_date = $_POST['appointment_date'] ?? '';
         $start_time = $_POST['start_time'] ?? '';
         
-        // Валидация данных
+        // валидация данных
         if (empty($client_name) || empty($phone) || empty($master_id) || empty($service_id) || empty($appointment_date) || empty($start_time)) {
             throw new Exception('Пожалуйста, заполните все поля формы');
         }
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Нельзя записаться на прошедшую дату');
         }
         
-        // Проверяем, есть ли такой клиент
+        // проверяем, есть ли такой клиент
         $client_stmt = $db->prepare("SELECT id FROM clients WHERE phone = ?");
         $client_stmt->execute([$phone]);
         $client = $client_stmt->fetch();
@@ -42,22 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($client) {
             $client_id = $client['id'];
         } else {
-            // Создаем нового клиента
+            // создаем нового клиента
             $insert_client = $db->prepare("INSERT INTO clients (full_name, phone) VALUES (?, ?)");
             $insert_client->execute([$client_name, $phone]);
             $client_id = $db->lastInsertId();
         }
         
-        // Получаем продолжительность услуги
+        // получаем продолжительность услуги
         $service_stmt = $db->prepare("SELECT duration_min FROM services WHERE id = ?");
         $service_stmt->execute([$service_id]);
         $service = $service_stmt->fetch();
         $duration_min = $service['duration_min'] ?? 60;
         
-        // Рассчитываем время окончания
+        // рассчитываем время окончания
         $end_time = date('H:i', strtotime($start_time) + $duration_min * 60);
         
-        // Проверяем, доступен ли мастер в указанное время
+        // проверяем, доступен ли мастер в указанное время
         $check_stmt = $db->prepare("
             SELECT COUNT(*) as count 
             FROM appointments 
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('К сожалению, мастер занят в указанное время. Пожалуйста, выберите другое время.');
         }
         
-        // Создаем запись
+        // создаем запись
         $insert_appointment = $db->prepare("
             INSERT INTO appointments 
             (client_id, master_id, service_id, appointment_date, start_time, end_time, status, notes) 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!-- Герой-секция -->
+<!-- герой-секция -->
 <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="hero-content">
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </section>
 
-<!-- Форма записи -->
+<!-- форма записи -->
 <section class="section booking-section">
     <div class="container">
         <div class="booking-form">
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </section>
 
-<!-- Правила записи -->
+<!-- правила записи -->
 <section class="section" style="background-color: var(--light-gray);">
     <div class="container">
         <h2 class="section-title">Правила записи</h2>

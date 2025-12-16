@@ -1,7 +1,7 @@
 <?php
 require_once 'includes/header.php';
 ?>
-<!-- Герой-секция -->
+<!-- герой-секция -->
 <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1509391309561-f19e0d3c7c8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="hero-content">
@@ -11,7 +11,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Контакты -->
+<!-- контакты -->
 <section class="section contacts-section">
     <div class="container">
         <h2 class="section-title">Наши контакты</h2>
@@ -90,7 +90,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Карта -->
+<!-- карта -->
 <section class="section" style="background-color: white;">
     <div class="container">
         <h2 class="section-title">Как нас найти</h2>
@@ -107,7 +107,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Дополнительная информация -->
+<!-- дополнительная информация -->
 <section class="section" style="background-color: var(--light-gray);">
     <div class="container">
         <h2 class="section-title">Дополнительная информация</h2>
