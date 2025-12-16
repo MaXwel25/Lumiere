@@ -92,3 +92,141 @@ window.app = {
     makeRequest,
     showNotification: window.showNotification
 };
+
+// Функция для отладки - показывает какие кнопки кликаются
+document.addEventListener('DOMContentLoaded', function() {
+    const actionButtons = document.querySelectorAll('.action-buttons .btn, .action-buttons a.btn');
+    
+    actionButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            console.log('Кнопка нажата:', this.className, 'Href:', this.href);
+            
+            // Предотвращаем стандартное поведение для кнопок-ссылок с href="#"
+            if (this.getAttribute('href') === '#' || 
+                this.getAttribute('href') === 'javascript:void(0)') {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Убедимся, что все кнопки имеют правильный курсор
+    const allButtons = document.querySelectorAll('button, a.btn');
+    allButtons.forEach(btn => {
+        btn.style.cursor = 'pointer';
+    });
+});
+
+// Улучшенная функция для печати чека
+function printReceipt(receiptId) {
+    if (!receiptId) {
+        alert('Ошибка: ID чека не указан');
+        return;
+    }
+    
+    console.log('Печать чека:', receiptId);
+    
+    // Открываем новое окно для печати
+    const printWindow = window.open('print_receipt.php?id=' + receiptId, '_blank');
+    
+    if (!printWindow) {
+        alert('Пожалуйста, разрешите всплывающие окна для печати чека');
+        return;
+    }
+    
+    printWindow.focus();
+}
+
+// Улучшенная функция для просмотра деталей чека
+function showReceiptDetails(receiptId) {
+    if (!receiptId) {
+        alert('Ошибка: ID чека не указан');
+        return;
+    }
+    
+    console.log('Просмотр чека:', receiptId);
+    
+    // Показываем загрузку
+    document.getElementById('receiptDetails').innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Загрузка деталей чека...</p>
+        </div>
+    `;
+    
+    // Показываем модальное окно
+    document.getElementById('receiptModal').style.display = 'block';
+    
+    // Загружаем данные
+    fetch('get_receipt_details.php?id=' + receiptId)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Ошибка загрузки');
+            }
+            return response.text();
+        })
+        .then(html => {
+            document.getElementById('receiptDetails').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('receiptDetails').innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>Ошибка загрузки</h4>
+                    <p>Не удалось загрузить детали чека.</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+// Альтернативная версия функции showReceiptDetails без fetch (если файла нет)
+function showReceiptDetailsSimple(receiptId) {
+    const receipt = {
+        id: receiptId,
+        date: new Date().toLocaleDateString('ru-RU'),
+        client: 'Иванов Иван Иванович',
+        master: 'Петрова Мария Сергеевна',
+        service: 'Женская стрижка',
+        amount: '1200 ₽',
+        status: 'Оплачено'
+    };
+    
+    const details = `
+        <div class="receipt-details-modal">
+            <h3>Чек #${receipt.id}</h3>
+            <div class="detail-item">
+                <strong>Дата создания:</strong> ${receipt.date}
+            </div>
+            <div class="detail-item">
+                <strong>Клиент:</strong> ${receipt.client}
+            </div>
+            <div class="detail-item">
+                <strong>Мастер:</strong> ${receipt.master}
+            </div>
+            <div class="detail-item">
+                <strong>Услуга:</strong> ${receipt.service}
+            </div>
+            <div class="detail-item">
+                <strong>Сумма:</strong> ${receipt.amount}
+            </div>
+            <div class="detail-item">
+                <strong>Статус:</strong> ${receipt.status}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('receiptDetails').innerHTML = details;
+    document.getElementById('receiptModal').style.display = 'block';
+}
+
+// Функция для закрытия модального окна
+function closeReceiptModal() {
+    document.getElementById('receiptModal').style.display = 'none';
+}
+
+// Закрытие модального окна при клике вне его
+document.getElementById('receiptModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReceiptModal();
+    }
+});
