@@ -18,7 +18,7 @@
 
 ## 🗃️ Структура проекта
 
-Lumiere/
+Lumiere/               
 ├── admin/               
 ├── assets/             
 ├── config/       
