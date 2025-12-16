@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
-            Парикмахерская "Стиль" - Администрирование
+            Парикмахерская "Lumiere" - Администрирование
         </div>
     </div>
 </body>

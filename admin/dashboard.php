@@ -148,7 +148,7 @@ $upcoming_appointments = $stmt->fetchAll();
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
-                <small>Парикмахерская "Стиль"</small>
+                <small>Парикмахерская "Lumiere"</small>
             </div>
             <ul class="admin-menu">
                 <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Дашборд</a></li>
@@ -165,7 +165,7 @@ $upcoming_appointments = $stmt->fetchAll();
         <!-- Основной контент -->
         <div class="admin-content">
             <h1>Панель управления</h1>
-            <p>Добро пожаловать в админ-панель парикмахерской "Стиль"</p>
+            <p>Добро пожаловать в админ-панель парикмахерской "Lumiere"</p>
             
             <!-- Статистика -->
             <div class="stats-grid">

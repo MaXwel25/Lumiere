@@ -9,7 +9,6 @@ $end_date = $_GET['end_date'] ?? date('Y-m-t');
 $payment_status = $_GET['payment_status'] ?? '';
 $payment_method = $_GET['payment_method'] ?? '';
 $master_id = $_GET['master_id'] ?? '';
-$search = $_GET['search'] ?? '';
 
 // Пагинация
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -36,11 +35,6 @@ if ($payment_method) {
 if ($master_id) {
     $where .= " AND a.master_id = :master_id";
     $params[':master_id'] = $master_id;
-}
-
-if ($search) {
-    $where .= " AND (c.full_name LIKE :search OR c.phone LIKE :search OR r.id LIKE :search)";
-    $params[':search'] = "%$search%";
 }
 
 // Получаем общее количество чеков
@@ -201,7 +195,7 @@ $payment_statuses = [
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
-                <small>Парикмахерская "Стиль"</small>
+                <small>Парикмахерская "Lumiere"</small>
             </div>
             <ul class="admin-menu">
                 <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Дашборд</a></li>
@@ -276,10 +270,6 @@ $payment_statuses = [
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="search">Поиск (клиент, телефон, ID чека)</label>
-                            <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>">
                         </div>
                     </div>
                     

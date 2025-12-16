@@ -4,43 +4,68 @@ require_once '../config/admin_config.php';
 requireAdminAuth();
 
 // Получаем выбранного мастера или всех
-$master_id = $_GET['master_id'] ?? null;
+$master_id = isset($_GET['master_id']) ? intval($_GET['master_id']) : null;
 
 // Получаем список мастеров для селектора
-$masters = $db->query("SELECT * FROM masters WHERE is_active = TRUE ORDER BY full_name")->fetchAll();
+try {
+    $masters = $db->query("SELECT * FROM masters WHERE is_active = TRUE ORDER BY full_name")->fetchAll();
+} catch (Exception $e) {
+    die("Ошибка загрузки списка мастеров: " . $e->getMessage());
+}
+
+$message = '';
 
 // Обработка сохранения расписания
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $master_id = $_POST['master_id'];
-    $work_days = $_POST['work_days'] ?? [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['master_id'])) {
+    $master_id = intval($_POST['master_id']);
+    $work_days_check = $_POST['work_days_check'] ?? [];
     $start_times = $_POST['start_times'] ?? [];
     $end_times = $_POST['end_times'] ?? [];
     
-    // Удаляем старое расписание для этого мастера
-    $stmt = $db->prepare("DELETE FROM work_schedule WHERE master_id = ?");
-    $stmt->execute([$master_id]);
-    
-    // Добавляем новые рабочие дни
-    foreach ($work_days as $day) {
-        if (isset($start_times[$day]) && isset($end_times[$day]) && 
-            !empty($start_times[$day]) && !empty($end_times[$day])) {
+    try {
+        // Начинаем транзакцию
+        $db->beginTransaction();
+        
+        // Удаляем старое расписание для этого мастера
+        $stmt = $db->prepare("DELETE FROM work_schedule WHERE master_id = ?");
+        $stmt->execute([$master_id]);
+        
+        // Добавляем новые рабочие дни (1-7)
+        for ($day = 1; $day <= 7; $day++) {
+            // Проверяем, является ли день рабочим
+            $is_working_day = in_array($day, $work_days_check);
             
-            $stmt = $db->prepare("
-                INSERT INTO work_schedule (master_id, day_of_week, start_time, end_time, is_working_day) 
-                VALUES (?, ?, ?, ?, 1)
-            ");
-            $stmt->execute([$master_id, $day, $start_times[$day], $end_times[$day]]);
-        } else {
-            // Добавляем нерабочий день
-            $stmt = $db->prepare("
-                INSERT INTO work_schedule (master_id, day_of_week, is_working_day) 
-                VALUES (?, ?, 0)
-            ");
-            $stmt->execute([$master_id, $day]);
+            if ($is_working_day && isset($start_times[$day]) && isset($end_times[$day]) && 
+                !empty($start_times[$day]) && !empty($end_times[$day])) {
+                
+                // Рабочий день
+                $stmt = $db->prepare("
+                    INSERT INTO work_schedule (master_id, day_of_week, start_time, end_time, is_working_day) 
+                    VALUES (?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([
+                    $master_id, 
+                    $day, 
+                    $start_times[$day], 
+                    $end_times[$day]
+                ]);
+            } else {
+                // Нерабочий день или нет времени
+                $stmt = $db->prepare("
+                    INSERT INTO work_schedule (master_id, day_of_week, start_time, end_time, is_working_day) 
+                    VALUES (?, ?, NULL, NULL, 0)
+                ");
+                $stmt->execute([$master_id, $day]);
+            }
         }
+        
+        $db->commit();
+        $message = "Расписание успешно сохранено!";
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        $message = "Ошибка при сохранении: " . $e->getMessage();
     }
-    
-    $message = "Расписание успешно сохранено!";
 }
 
 // Если выбран мастер, загружаем его расписание
@@ -48,21 +73,25 @@ $schedule = [];
 $current_master = null;
 
 if ($master_id) {
-    $master_id = intval($master_id);
-    
-    // Получаем информацию о мастере
-    $stmt = $db->prepare("SELECT * FROM masters WHERE id = ?");
-    $stmt->execute([$master_id]);
-    $current_master = $stmt->fetch();
-    
-    // Получаем расписание мастера
-    $stmt = $db->prepare("SELECT * FROM work_schedule WHERE master_id = ? ORDER BY day_of_week");
-    $stmt->execute([$master_id]);
-    $schedule_data = $stmt->fetchAll();
-    
-    // Преобразуем в удобный формат
-    foreach ($schedule_data as $day) {
-        $schedule[$day['day_of_week']] = $day;
+    try {
+        // Получаем информацию о мастере
+        $stmt = $db->prepare("SELECT * FROM masters WHERE id = ?");
+        $stmt->execute([$master_id]);
+        $current_master = $stmt->fetch();
+        
+        if ($current_master) {
+            // Получаем расписание мастера
+            $stmt = $db->prepare("SELECT * FROM work_schedule WHERE master_id = ? ORDER BY day_of_week");
+            $stmt->execute([$master_id]);
+            $schedule_data = $stmt->fetchAll();
+            
+            // Преобразуем в удобный формат
+            foreach ($schedule_data as $day) {
+                $schedule[$day['day_of_week']] = $day;
+            }
+        }
+    } catch (Exception $e) {
+        $message = "Ошибка загрузки расписания: " . $e->getMessage();
     }
 }
 
@@ -127,6 +156,8 @@ $days_of_week = [
         .day-off { background: #ffeaea; }
         .working-day { background: #eaffea; }
         .today { background: #fff8e1; border-left: 4px solid #ffc107; }
+        .time-inputs.disabled { opacity: 0.5; }
+        .time-inputs.disabled input { background: #f5f5f5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -135,7 +166,7 @@ $days_of_week = [
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
-                <small>Парикмахерская "Стиль"</small>
+                <small>Парикмахерская "Lumiere"</small>
             </div>
             <ul class="admin-menu">
                 <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Дашборд</a></li>
@@ -153,14 +184,16 @@ $days_of_week = [
         <div class="admin-content">
             <h1><i class="fas fa-clock"></i> Управление расписанием</h1>
             
-            <?php if (isset($message)): ?>
-                <div class="alert alert-success"><?php echo $message; ?></div>
+            <?php if ($message): ?>
+                <div class="alert <?php echo strpos($message, 'Ошибка') !== false ? 'alert-error' : 'alert-success'; ?>">
+                    <?php echo $message; ?>
+                </div>
             <?php endif; ?>
             
             <!-- Выбор мастера -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <form method="GET" style="display: flex; gap: 15px; align-items: center;">
-                    <div style="flex: 1;">
+                <form method="GET">
+                    <div>
                         <label for="master_id">Выберите мастера:</label>
                         <select id="master_id" name="master_id" onchange="this.form.submit()" required>
                             <option value="">-- Выберите мастера --</option>
@@ -172,9 +205,6 @@ $days_of_week = [
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div>
-                        <button type="submit" class="btn btn-primary">Загрузить расписание</button>
                     </div>
                 </form>
             </div>
@@ -190,27 +220,32 @@ $days_of_week = [
                     // Статистика мастера
                     $today = date('N'); // Текущий день недели (1-7)
                     
-                    // Записи на сегодня
-                    $stmt = $db->prepare("
-                        SELECT COUNT(*) as count 
-                        FROM appointments 
-                        WHERE master_id = ? 
-                        AND appointment_date = CURDATE() 
-                        AND status = 'scheduled'
-                    ");
-                    $stmt->execute([$master_id]);
-                    $today_appointments = $stmt->fetch()['count'];
-                    
-                    // Записи на эту неделю
-                    $stmt = $db->prepare("
-                        SELECT COUNT(*) as count 
-                        FROM appointments 
-                        WHERE master_id = ? 
-                        AND appointment_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-                        AND status = 'scheduled'
-                    ");
-                    $stmt->execute([$master_id]);
-                    $week_appointments = $stmt->fetch()['count'];
+                    try {
+                        // Записи на сегодня
+                        $stmt = $db->prepare("
+                            SELECT COUNT(*) as count 
+                            FROM appointments 
+                            WHERE master_id = ? 
+                            AND appointment_date = CURDATE() 
+                            AND status = 'scheduled'
+                        ");
+                        $stmt->execute([$master_id]);
+                        $today_appointments = $stmt->fetch()['count'];
+                        
+                        // Записи на эту неделю
+                        $stmt = $db->prepare("
+                            SELECT COUNT(*) as count 
+                            FROM appointments 
+                            WHERE master_id = ? 
+                            AND appointment_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                            AND status = 'scheduled'
+                        ");
+                        $stmt->execute([$master_id]);
+                        $week_appointments = $stmt->fetch()['count'];
+                    } catch (Exception $e) {
+                        $today_appointments = 0;
+                        $week_appointments = 0;
+                    }
                     ?>
                     
                     <div class="master-stats">
@@ -225,9 +260,12 @@ $days_of_week = [
                         <div class="stat-card">
                             <div class="stat-value">
                                 <?php 
-                                $working_days = count(array_filter($schedule, function($day) {
-                                    return $day['is_working_day'] == 1;
-                                }));
+                                $working_days = 0;
+                                foreach ($schedule as $day) {
+                                    if ($day['is_working_day'] == 1) {
+                                        $working_days++;
+                                    }
+                                }
                                 echo $working_days;
                                 ?>
                             </div>
@@ -266,14 +304,14 @@ $days_of_week = [
                                         'end_time' => '18:00'
                                     ];
                                     $is_today = ($day == $today);
+                                    $is_working = $day_data['is_working_day'] == 1;
                                 ?>
-                                <tr class="<?php echo $is_today ? 'today' : ''; ?> <?php echo $day_data['is_working_day'] ? 'working-day' : 'day-off'; ?>">
+                                <tr class="<?php echo $is_today ? 'today' : ''; ?> <?php echo $is_working ? 'working-day' : 'day-off'; ?>">
                                     <td>
                                         <strong><?php echo $days_of_week[$day]; ?></strong>
                                         <?php if ($is_today): ?>
                                             <span style="color: #ffc107; margin-left: 10px;">(Сегодня)</span>
                                         <?php endif; ?>
-                                        <input type="hidden" name="work_days[]" value="<?php echo $day; ?>">
                                     </td>
                                     <td>
                                         <div class="checkbox-container">
@@ -281,28 +319,28 @@ $days_of_week = [
                                                    id="work_day_<?php echo $day; ?>" 
                                                    name="work_days_check[]" 
                                                    value="<?php echo $day; ?>"
-                                                   <?php echo $day_data['is_working_day'] ? 'checked' : ''; ?>
+                                                   <?php echo $is_working ? 'checked' : ''; ?>
                                                    onchange="toggleTimeInputs(<?php echo $day; ?>)">
                                             <label for="work_day_<?php echo $day; ?>">Работает</label>
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="time-inputs" id="time_inputs_<?php echo $day; ?>">
+                                        <div class="time-inputs <?php echo !$is_working ? 'disabled' : ''; ?>" id="time_inputs_<?php echo $day; ?>">
                                             <input type="time" 
                                                    name="start_times[<?php echo $day; ?>]" 
-                                                   value="<?php echo $day_data['is_working_day'] ? $day_data['start_time'] : '09:00'; ?>"
-                                                   <?php echo !$day_data['is_working_day'] ? 'disabled' : ''; ?>>
+                                                   value="<?php echo $is_working ? substr($day_data['start_time'], 0, 5) : '09:00'; ?>"
+                                                   <?php echo !$is_working ? 'disabled' : ''; ?>>
                                             <span>—</span>
                                             <input type="time" 
                                                    name="end_times[<?php echo $day; ?>]" 
-                                                   value="<?php echo $day_data['is_working_day'] ? $day_data['end_time'] : '18:00'; ?>"
-                                                   <?php echo !$day_data['is_working_day'] ? 'disabled' : ''; ?>>
+                                                   value="<?php echo $is_working ? substr($day_data['end_time'], 0, 5) : '18:00'; ?>"
+                                                   <?php echo !$is_working ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
-                                        <?php if ($day_data['is_working_day']): ?>
+                                        <?php if ($is_working): ?>
                                             <span style="color: #27ae60;">
-                                                Рабочий день: <?php echo $day_data['start_time']; ?> - <?php echo $day_data['end_time']; ?>
+                                                Рабочий день: <?php echo substr($day_data['start_time'], 0, 5); ?> - <?php echo substr($day_data['end_time'], 0, 5); ?>
                                             </span>
                                         <?php else: ?>
                                             <span class="non-working-day">Выходной</span>
@@ -319,7 +357,7 @@ $days_of_week = [
                                 <li>Для установки выходного дня снимите галочку "Работает"</li>
                                 <li>Расписание сохраняется отдельно для каждого мастера</li>
                                 <li>Изменения вступают в силу немедленно</li>
-                                <li>Записи вне рабочего времени будут недоступны для клиентов</li>
+                                <li>Записи вне рабочего времени будут недоступны для клиентам</li>
                             </ul>
                         </div>
                     </div>
@@ -333,7 +371,7 @@ $days_of_week = [
                     <a href="masters.php?edit=<?php echo $master_id; ?>" class="btn btn-warning">
                         <i class="fas fa-edit"></i> Редактировать профиль
                     </a>
-                    <button onclick="setStandardSchedule()" class="btn btn-info">
+                    <button type="button" onclick="setStandardSchedule()" class="btn btn-info">
                         <i class="fas fa-clock"></i> Установить стандартное расписание
                     </button>
                 </div>
@@ -364,9 +402,11 @@ $days_of_week = [
         if (checkbox.checked) {
             row.classList.remove('day-off');
             row.classList.add('working-day');
+            timeInputs.classList.remove('disabled');
         } else {
             row.classList.remove('working-day');
             row.classList.add('day-off');
+            timeInputs.classList.add('disabled');
         }
     }
     
@@ -402,6 +442,7 @@ $days_of_week = [
         for (let day = 1; day <= 7; day++) {
             const checkbox = document.getElementById('work_day_' + day);
             if (checkbox) {
+                // Вызываем toggleTimeInputs для установки начального состояния
                 toggleTimeInputs(day);
             }
         }
