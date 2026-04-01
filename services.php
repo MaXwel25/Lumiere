@@ -13,7 +13,6 @@ foreach ($services as $service) {
 }
 ?>
 
-// Герой-секция
 <section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1541938832687-46029622c3d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="hero-content">
