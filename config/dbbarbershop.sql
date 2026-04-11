@@ -82,6 +82,14 @@ CREATE TABLE IF NOT EXISTS receipts (
     CONSTRAINT fk_receipts_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
 );
 
+-- Таблица админов (изначально забыл о ней) )
+CREATE TABLE admins (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);
+
 -- Индексы
 CREATE INDEX idx_clients_phone ON clients(phone);
 CREATE INDEX idx_clients_email ON clients(email);
