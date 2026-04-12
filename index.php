@@ -129,14 +129,20 @@ try {
     </div>
 </section>
 
-<!-- связь с админкой -->
+<!-- новый блок вместо "Для сотрудников" -->
 <section class="section" style="background-color: #2c3e50; color: white; text-align: center;">
     <div class="container">
-        <h2 class="section-title" style="color: white;">Для сотрудников</h2>
-        <p style="font-size: 1.2rem; margin-bottom: 30px;">Доступ к административной панели для управления записями, мастерами и услугами</p>
-        <a href="http://localhost/admin/login.php" class="btn btn-admin" style="background-color: #d4af37; color: #2c3e50; font-size: 1.2rem; padding: 15px 40px;">
-            <i class="fas fa-user-shield"></i> Войти в админ-панель
-        </a>
+        <h2 class="section-title" style="color: white;">Присоединяйтесь к Lumiere</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 30px;">Зарегистрируйтесь, чтобы отслеживать свои записи и получать персональные предложения</p>
+        <?php if (!isClientLoggedIn()): ?>
+            <a href="profile/login.php" class="btn btn-admin" style="background-color: #d4af37; color: #2c3e50; font-size: 1.2rem; padding: 15px 40px;">
+                <i class="fas fa-user-plus"></i> Войти / Зарегистрироваться
+            </a>
+        <?php else: ?>
+            <a href="profile/profile.php" class="btn btn-admin" style="background-color: #d4af37; color: #2c3e50; font-size: 1.2rem; padding: 15px 40px;">
+                <i class="fas fa-user"></i> Мой профиль
+            </a>
+        <?php endif; ?>
     </div>
 </section>
 
