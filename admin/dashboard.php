@@ -160,6 +160,7 @@ $upcoming_appointments = $stmt->fetchAll();
                 <li><a href="services.php"><i class="fas fa-concierge-bell"></i> Услуги</a></li>
                 <li><a href="schedule.php"><i class="fas fa-clock"></i> Расписание</a></li>
                 <li><a href="receipts.php"><i class="fas fa-receipt"></i> Чеки</a></li>
+                <li><a href="admins.php"><i class="fas fa-user-shield"></i> Администраторы</a></li>
                 <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Выход</a></li>
             </ul>
         </div>
