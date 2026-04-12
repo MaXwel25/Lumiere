@@ -20,9 +20,13 @@
 
 Lumiere/               
 ├── admin/               
-├── assets/             
+├── assets 
+|        ├── css
+|        └── js
 ├── config/       
-├── includes/        
+├── includes/
+├── photo/
+├── profile/          
 ├── index.php            
 ├── booking.php          
 ├── contacts.php        
@@ -37,7 +41,6 @@ Lumiere/
 - **JavaScript** — для интерактивных элементов  
 - **Nginx** — веб-сервер в локальной среде  
 
----
 
 ## 🚀 Запуск локально
 
@@ -62,6 +65,8 @@ Lumiere/
 5. Откройте в браузере:
     ```bash
     http://localhost
+
+
 
 ## Запуск через PHP-сервер
 
