@@ -17,37 +17,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($full_name) || empty($email)) {
         $error = 'Имя и email обязательны для заполнения';
-    } elseif ($id && empty($password) && empty($password_confirm)) {
-        // при редактировании без смены пароля - ок
-    } elseif (!$id && (empty($password) || empty($password_confirm))) {
-        $error = 'Пароль обязателен для нового администратора';
-    } elseif ($password !== $password_confirm) {
-        $error = 'Пароли не совпадают';
     } else {
-        try {
-            if ($id) {
-                // Редактирование существующего (без updated_at)
-                if (!empty($password)) {
-                    $hash = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $db->prepare("UPDATE admins SET full_name = ?, email = ?, password_hash = ? WHERE id = ?");
-                    $stmt->execute([$full_name, $email, $hash, $id]);
-                } else {
-                    $stmt = $db->prepare("UPDATE admins SET full_name = ?, email = ? WHERE id = ?");
-                    $stmt->execute([$full_name, $email, $id]);
+        // Определяем, меняется ли пароль
+        $changingPassword = !empty($password) || !empty($password_confirm);
+
+        if ($id) {
+            // Редактирование
+            if ($changingPassword) {
+                if ($password !== $password_confirm) {
+                    $error = 'Пароли не совпадают';
+                } elseif (strlen($password) < 6) {
+                    $error = 'Пароль должен быть не менее 6 символов';
                 }
-                $message = 'Администратор обновлён';
-            } else {
-                // Добавление нового
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $db->prepare("INSERT INTO admins (full_name, email, password_hash) VALUES (?, ?, ?)");
-                $stmt->execute([$full_name, $email, $hash]);
-                $message = 'Администратор добавлен';
             }
-        } catch (PDOException $e) {
-            if ($e->getCode() == 23505) {
-                $error = 'Администратор с таким email уже существует';
-            } else {
-                $error = 'Ошибка базы данных: ' . $e->getMessage();
+
+            if (!$error) {
+                try {
+                    if ($changingPassword) {
+                        $hash = password_hash($password, PASSWORD_DEFAULT);
+                        $stmt = $db->prepare("UPDATE admins SET full_name = ?, email = ?, password_hash = ? WHERE id = ?");
+                        $stmt->execute([$full_name, $email, $hash, $id]);
+                    } else {
+                        $stmt = $db->prepare("UPDATE admins SET full_name = ?, email = ? WHERE id = ?");
+                        $stmt->execute([$full_name, $email, $id]);
+                    }
+                    $message = 'Администратор обновлён';
+                } catch (PDOException $e) {
+                    $error = ($e->getCode() == 23505) ? 'Email уже используется' : 'Ошибка БД: ' . $e->getMessage();
+                }
+            }
+        } else {
+            // Новый администратор
+            if (empty($password)) {
+                $error = 'Пароль обязателен';
+            } elseif ($password !== $password_confirm) {
+                $error = 'Пароли не совпадают';
+            } elseif (strlen($password) < 6) {
+                $error = 'Пароль должен быть не менее 6 символов';
+            }
+
+            if (!$error) {
+                try {
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $db->prepare("INSERT INTO admins (full_name, email, password_hash) VALUES (?, ?, ?)");
+                    $stmt->execute([$full_name, $email, $hash]);
+                    $message = 'Администратор добавлен';
+                } catch (PDOException $e) {
+                    $error = ($e->getCode() == 23505) ? 'Email уже используется' : 'Ошибка БД: ' . $e->getMessage();
+                }
             }
         }
     }

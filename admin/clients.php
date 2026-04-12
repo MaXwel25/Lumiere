@@ -5,15 +5,20 @@ require_once '../includes/auth.php';
 requireAdminAuth();
 
 // обработка добавления/редактирования клиента
-// обработка добавления/редактирования клиента
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $new_password = $_POST['new_password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
 
     if (empty($full_name) || empty($phone)) {
         $error = "ФИО и телефон обязательны для заполнения";
+    } elseif ($id && !empty($new_password) && $new_password !== $password_confirm) {
+        $error = "Пароли не совпадают";
+    } elseif (!$id && empty($new_password)) {
+        $error = "Пароль обязателен для нового клиента";
     } else {
         try {
             if ($id) {
@@ -26,20 +31,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $stmt = $db->prepare("
-                    UPDATE clients 
-                    SET full_name = ?, phone = ?, email = ?, updated_at = CURRENT_TIMESTAMP 
-                    WHERE id = ?
-                ");
-                $stmt->execute([$full_name, $phone, $email ?: null, $id]);
+                // Обновление клиента
+                if (!empty($new_password)) {
+                    $hash = password_hash($new_password, PASSWORD_DEFAULT);
+                    $stmt = $db->prepare("
+                        UPDATE clients 
+                        SET full_name = ?, phone = ?, email = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$full_name, $phone, $email ?: null, $hash, $id]);
+                } else {
+                    $stmt = $db->prepare("
+                        UPDATE clients 
+                        SET full_name = ?, phone = ?, email = ?, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$full_name, $phone, $email ?: null, $id]);
+                }
                 $message = "Клиент успешно обновлен";
             } else {
                 // Добавление нового клиента
                 if (empty($email)) {
-                    // Генерируем временный уникальный email
                     $email = 'client_' . uniqid() . '@temp.local';
                 } else {
-                    // Проверяем уникальность email
                     $checkStmt = $db->prepare("SELECT id FROM clients WHERE email = ?");
                     $checkStmt->execute([$email]);
                     if ($checkStmt->fetch()) {
@@ -47,12 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $tempHash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+                $hash = password_hash($new_password, PASSWORD_DEFAULT);
                 $stmt = $db->prepare("
                     INSERT INTO clients (full_name, phone, email, password_hash) 
                     VALUES (?, ?, ?, ?)
                 ");
-                $stmt->execute([$full_name, $phone, $email, $tempHash]);
+                $stmt->execute([$full_name, $phone, $email, $hash]);
                 $message = "Клиент успешно добавлен";
             }
         } catch (PDOException $e) {
@@ -247,6 +261,16 @@ if (isset($_GET['edit'])) {
                             <input type="email" id="email" name="email"
                                    value="<?php echo $editClient ? htmlspecialchars($editClient['email']) : ''; ?>">
                         </div>
+                        <div class="form-row">
+                        <div class="form-group">
+                            <label for="new_password">Новый пароль <?= $editClient ? '(оставьте пустым, чтобы не менять)' : '*' ?></label>
+                            <input type="password" id="new_password" name="new_password" <?= $editClient ? '' : 'required' ?>>
+                        </div>
+                        <div class="form-group">
+                            <label for="password_confirm">Подтверждение пароля</label>
+                            <input type="password" id="password_confirm" name="password_confirm" <?= $editClient ? '' : 'required' ?>>
+                        </div>
+                    </div>
                     </div>
 
                     <div class="form-actions">
