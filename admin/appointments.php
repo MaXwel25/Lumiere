@@ -1,6 +1,7 @@
 <?php
+// appointments.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
 // обработка изменений статуса
@@ -8,7 +9,6 @@ if (isset($_POST['change_status'])) {
     $id = intval($_POST['id']);
     $new_status = $_POST['status'];
     
-    // проверяем, что статус допустим
     $allowed_statuses = ['scheduled', 'completed', 'cancelled', 'no_show'];
     
     if (in_array($new_status, $allowed_statuses)) {
@@ -67,6 +67,7 @@ $appointments = $stmt->fetchAll();
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* все стили оставлены без изменений */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -97,88 +98,16 @@ $appointments = $stmt->fetchAll();
         .status-no_show { background: #f39c12; color: white; }
         .action-buttons { display: flex; gap: 5px; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #3498db; color: white; }
-        
-        /* стили для формы изменения статуса */
-        .status-form {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .status-select {
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 12px;
-            min-width: 120px;
-        }
-        
-        .quick-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 5px;
-        }
-        
-        .quick-action-btn {
-            padding: 3px 8px;
-            font-size: 11px;
-            border-radius: 3px;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            min-width: 300px;
-            max-width: 500px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        
-        .modal-title {
-            font-size: 1.2rem;
-            color: #2c3e50;
-            margin: 0;
-        }
-        
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #7f8c8d;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
+        .status-form { display: flex; gap: 8px; align-items: center; }
+        .status-select { padding: 5px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; min-width: 120px; }
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+        .quick-action-btn { padding: 3px 8px; font-size: 11px; border-radius: 3px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; min-width: 300px; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-title { font-size: 1.2rem; color: #2c3e50; margin: 0; }
+        .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #7f8c8d; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -254,7 +183,6 @@ $appointments = $stmt->fetchAll();
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <!-- форма для изменения статуса -->
                                         <form method="POST" class="status-form" onsubmit="return confirmStatusChange(<?php echo $appointment['id']; ?>, this)">
                                             <input type="hidden" name="id" value="<?php echo $appointment['id']; ?>">
                                             <input type="hidden" name="change_status" value="1">
@@ -269,7 +197,6 @@ $appointments = $stmt->fetchAll();
                                             </button>
                                         </form>
                                         
-                                        <!-- быстрые действия -->
                                         <div class="quick-actions">
                                             <?php if ($appointment['status'] === 'scheduled'): ?>
                                             <a href="?action=complete&id=<?php echo $appointment['id']; ?>" 
@@ -317,7 +244,6 @@ $appointments = $stmt->fetchAll();
                     ];
                     
                     foreach ($statusStats as $status => $label):
-                        // используем новую переменную для запроса, чтобы не перезаписывать $stmt
                         $countStmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE status = ?");
                         $countStmt->execute([$status]);
                         $result = $countStmt->fetch();

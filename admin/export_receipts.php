@@ -1,53 +1,51 @@
 <?php
+// export_receipts.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
-// устанавливаем заголовки для скачивания Excel файла
+// Устанавливаем заголовки для скачивания Excel файла
 header('Content-Type: application/vnd.ms-excel');
 header('Content-Disposition: attachment; filename="receipts_' . date('Y-m-d_H-i') . '.xls"');
 header('Cache-Control: max-age=0');
 
-// получаем параметры фильтров (те же, что и в receipts.php)
+// Получаем параметры фильтров (те же, что и в receipts.php)
 $start_date = $_GET['start_date'] ?? date('Y-m-01');
-$end_date = $_GET['end_date'] ?? date('Y-m-t');
+$end_date   = $_GET['end_date']   ?? date('Y-m-t');
 $payment_status = $_GET['payment_status'] ?? '';
 $payment_method = $_GET['payment_method'] ?? '';
-$master_id = $_GET['master_id'] ?? '';
-$search = $_GET['search'] ?? '';
+$master_id      = $_GET['master_id']      ?? '';
+$search         = $_GET['search']         ?? '';
 
-// формируем условия запроса (аналогично receipts.php)
-$where = "WHERE r.issued_at BETWEEN :start_date AND :end_date + INTERVAL 1 DAY";
-$params = [
-    ':start_date' => $start_date,
-    ':end_date' => $end_date
-];
+// Формируем условия запроса для PostgreSQL
+$where = "WHERE r.issued_at >= ? AND r.issued_at < ?::date + 1";
+$params = [$start_date, $end_date];
 
 if ($payment_status) {
-    $where .= " AND r.payment_status = :payment_status";
-    $params[':payment_status'] = $payment_status;
+    $where .= " AND r.payment_status = ?";
+    $params[] = $payment_status;
 }
-
 if ($payment_method) {
-    $where .= " AND r.payment_method = :payment_method";
-    $params[':payment_method'] = $payment_method;
+    $where .= " AND r.payment_method = ?";
+    $params[] = $payment_method;
 }
-
 if ($master_id) {
-    $where .= " AND a.master_id = :master_id";
-    $params[':master_id'] = $master_id;
+    $where .= " AND a.master_id = ?";
+    $params[] = $master_id;
 }
-
 if ($search) {
-    $where .= " AND (c.full_name LIKE :search OR c.phone LIKE :search OR r.id LIKE :search)";
-    $params[':search'] = "%$search%";
+    $where .= " AND (c.full_name ILIKE ? OR c.phone ILIKE ? OR CAST(r.id AS TEXT) ILIKE ?)";
+    $searchTerm = "%$search%";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
 }
 
-// получаем все чеки без пагинации
+// Получаем все чеки без пагинации
 $query = "
     SELECT 
         r.id as receipt_id,
-        DATE_FORMAT(r.issued_at, '%d.%m.%Y %H:%i') as issued_date,
+        TO_CHAR(r.issued_at, 'DD.MM.YYYY HH24:MI') as issued_date,
         c.full_name as client_name,
         c.phone as client_phone,
         m.full_name as master_name,
@@ -59,17 +57,17 @@ $query = "
             WHEN r.payment_status = 'pending' THEN 'Ожидает оплаты'
             WHEN r.payment_status = 'paid' THEN 'Оплачено'
             WHEN r.payment_status = 'refunded' THEN 'Возврат'
-            ELSE r.payment_status
+            ELSE r.payment_status::text
         END as payment_status,
         CASE 
             WHEN r.payment_method = 'cash' THEN 'Наличные'
             WHEN r.payment_method = 'card' THEN 'Карта'
             WHEN r.payment_method = 'online' THEN 'Онлайн'
-            ELSE r.payment_method
+            ELSE r.payment_method::text
         END as payment_method,
-        DATE_FORMAT(r.paid_at, '%d.%m.%Y %H:%i') as paid_date,
-        DATE_FORMAT(a.appointment_date, '%d.%m.%Y') as appointment_date,
-        DATE_FORMAT(a.start_time, '%H:%i') as appointment_time,
+        TO_CHAR(r.paid_at, 'DD.MM.YYYY HH24:MI') as paid_date,
+        TO_CHAR(a.appointment_date, 'DD.MM.YYYY') as appointment_date,
+        TO_CHAR(a.start_time, 'HH24:MI') as appointment_time,
         a.id as appointment_id
     FROM receipts r
     JOIN appointments a ON r.appointment_id = a.id
@@ -84,7 +82,7 @@ $stmt = $db->prepare($query);
 $stmt->execute($params);
 $receipts = $stmt->fetchAll();
 
-// начинаем вывод Excel (HTML таблица, которую Excel понимает)
+// Вывод Excel (HTML таблица, совместимая с Excel)
 echo '<!DOCTYPE html>';
 echo '<html>';
 echo '<head>';
@@ -96,7 +94,7 @@ echo '</style>';
 echo '</head>';
 echo '<body>';
 
-echo '<h2>Чеки парикмахерской "Стиль"</h2>';
+echo '<h2>Чеки парикмахерской "Lumiere"</h2>';
 echo '<p>Период: ' . date('d.m.Y', strtotime($start_date)) . ' - ' . date('d.m.Y', strtotime($end_date)) . '</p>';
 echo '<p>Дата выгрузки: ' . date('d.m.Y H:i') . '</p>';
 
@@ -142,23 +140,22 @@ foreach ($receipts as $receipt) {
     echo '</tr>';
 }
 
-// итоговая строка
+// Итоговая строка
 $stats_query = "
     SELECT 
         COUNT(*) as total_count,
-        SUM(r.final_amount) as total_amount
+        COALESCE(SUM(r.final_amount), 0) as total_amount
     FROM receipts r
     JOIN appointments a ON r.appointment_id = a.id
     $where
 ";
-
 $stmt = $db->prepare($stats_query);
 $stmt->execute($params);
 $stats = $stmt->fetch();
 
 echo '<tr style="font-weight: bold; background-color: #e8f4f8;">';
 echo '<td colspan="8">ИТОГО:</td>';
-echo '<td>' . number_format($stats['total_amount'] ?? 0, 0, ',', ' ') . ' ₽</td>';
+echo '<td>' . number_format($stats['total_amount'], 0, ',', ' ') . ' ₽</td>';
 echo '<td colspan="2">Всего чеков: ' . $stats['total_count'] . '</td>';
 echo '<td colspan="4"></td>';
 echo '</tr>';
@@ -166,7 +163,7 @@ echo '</tr>';
 echo '</tbody>';
 echo '</table>';
 
-// добавляем лист со статистикой
+// Статистика по методам оплаты
 echo '<br><br><br>';
 echo '<h3>Статистика по методам оплаты</h3>';
 
@@ -176,10 +173,10 @@ $payment_stats_query = "
             WHEN r.payment_method = 'cash' THEN 'Наличные'
             WHEN r.payment_method = 'card' THEN 'Карта'
             WHEN r.payment_method = 'online' THEN 'Онлайн'
-            ELSE r.payment_method
+            ELSE r.payment_method::text
         END as payment_method,
         COUNT(*) as count,
-        SUM(r.final_amount) as total_amount
+        COALESCE(SUM(r.final_amount), 0) as total_amount
     FROM receipts r
     JOIN appointments a ON r.appointment_id = a.id
     $where
@@ -214,4 +211,3 @@ echo '</table>';
 
 echo '</body>';
 echo '</html>';
-?>

@@ -1,13 +1,14 @@
 <?php
+// dashboard.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
 // получаем статистику
 $stats = [];
 
 // количество записей сегодня
-$stmt = $db->query("SELECT COUNT(*) as count FROM appointments WHERE appointment_date = CURDATE()");
+$stmt = $db->query("SELECT COUNT(*) as count FROM appointments WHERE appointment_date = CURRENT_DATE");
 $stats['today_appointments'] = $stmt->fetch()['count'];
 
 // количество активных клиентов
@@ -20,12 +21,12 @@ $stats['active_masters'] = $stmt->fetch()['count'];
 
 // выручка за сегодня
 $stmt = $db->query("
-    SELECT SUM(r.final_amount) as total 
+    SELECT COALESCE(SUM(r.final_amount), 0) as total 
     FROM receipts r 
     JOIN appointments a ON r.appointment_id = a.id 
-    WHERE a.appointment_date = CURDATE() AND r.payment_status = 'paid'
+    WHERE a.appointment_date = CURRENT_DATE AND r.payment_status = 'paid'
 ");
-$stats['today_revenue'] = $stmt->fetch()['total'] ?? 0;
+$stats['today_revenue'] = $stmt->fetch()['total'];
 
 // ближайшие записи
 $stmt = $db->query("
@@ -34,7 +35,7 @@ $stmt = $db->query("
     JOIN clients c ON a.client_id = c.id
     JOIN masters m ON a.master_id = m.id
     JOIN services s ON a.service_id = s.id
-    WHERE a.appointment_date >= CURDATE()
+    WHERE a.appointment_date >= CURRENT_DATE
     ORDER BY a.appointment_date, a.start_time
     LIMIT 10
 ");
@@ -49,6 +50,7 @@ $upcoming_appointments = $stmt->fetchAll();
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* стили остаются без изменений */
         .admin-container {
             display: flex;
             min-height: 100vh;

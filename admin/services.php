@@ -1,6 +1,7 @@
 <?php
+// services.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
 // обработка добавления/редактирования услуги
@@ -11,38 +12,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $_POST['price'] ?? 0;
     $duration_min = $_POST['duration_min'] ?? 30;
     $category = $_POST['category'] ?? null;
-    $is_active = isset($_POST['is_active']) ? 1 : 0;
-    
-    if ($id) {
-        // редактирование существующей услуги
-        $stmt = $db->prepare("
-            UPDATE services 
-            SET name = ?, description = ?, price = ?, duration_min = ?, 
-                category = ?, is_active = ?, updated_at = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$name, $description, $price, $duration_min, $category, $is_active, $id]);
-        $message = "Услуга успешно обновлена";
-    } else {
-        // добавление новой услуги
-        $stmt = $db->prepare("
-            INSERT INTO services (name, description, price, duration_min, category, is_active) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$name, $description, $price, $duration_min, $category, $is_active]);
-        $message = "Услуга успешно добавлена";
+    $is_active = isset($_POST['is_active']); // теперь булево
+
+    try {
+        if ($id) {
+            $stmt = $db->prepare("
+                UPDATE services 
+                SET name = ?, description = ?, price = ?, duration_min = ?, 
+                    category = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ");
+            $stmt->execute([$name, $description, $price, $duration_min, $category, $is_active, $id]);
+            $message = "Услуга успешно обновлена";
+        } else {
+            $stmt = $db->prepare("
+                INSERT INTO services (name, description, price, duration_min, category, is_active) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$name, $description, $price, $duration_min, $category, $is_active]);
+            $message = "Услуга успешно добавлена";
+        }
+    } catch (PDOException $e) {
+        $error = "Ошибка базы данных: " . $e->getMessage();
     }
 }
 
 // обработка удаления услуги
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    
-    // проверяем, есть ли активные записи на эту услугу
+
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE service_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
-    
+
     if ($hasAppointments) {
         $error = "Нельзя удалить услугу с активными записями";
     } else {
@@ -52,21 +54,21 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// получение всех услуг
+// получение всех услуг с пагинацией и фильтрами
 $search = $_GET['search'] ?? '';
 $category = $_GET['category'] ?? '';
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-// формируем запрос с фильтрами
 $where = "WHERE 1=1";
 $params = [];
 
 if ($search) {
-    $where .= " AND (name LIKE ? OR description LIKE ?)";
+    $where .= " AND (name ILIKE ? OR description ILIKE ?)";
     $searchTerm = "%$search%";
-    $params = array_fill(0, 2, $searchTerm);
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
 }
 
 if ($category) {
@@ -74,36 +76,38 @@ if ($category) {
     $params[] = $category;
 }
 
-// общее количество услуг
+// общее количество
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM services $where");
 $stmt->execute($params);
 $totalServices = $stmt->fetch()['total'];
 $totalPages = ceil($totalServices / $limit);
 
-// получаем услуги для текущей страницы
-$stmt = $db->prepare("
+// получаем услуги (используем плейсхолдеры для LIMIT OFFSET)
+$query = "
     SELECT 
         s.*,
         COUNT(a.id) as total_appointments,
         COUNT(DISTINCT m.id) as masters_count
     FROM services s
     LEFT JOIN appointments a ON s.id = a.service_id
-    LEFT JOIN masters m ON EXISTS (
-        SELECT 1 FROM appointments a2 
-        WHERE a2.service_id = s.id AND a2.master_id = m.id
+    LEFT JOIN masters m ON m.id IN (
+        SELECT DISTINCT a2.master_id FROM appointments a2 WHERE a2.service_id = s.id
     )
     $where
     GROUP BY s.id
     ORDER BY s.is_active DESC, s.category, s.price
-    LIMIT $limit OFFSET $offset
-");
+    LIMIT ? OFFSET ?
+";
+$stmt = $db->prepare($query);
+$params[] = $limit;
+$params[] = $offset;
 $stmt->execute($params);
 $services = $stmt->fetchAll();
 
-// получаем уникальные категории для фильтра
+// категории для фильтра
 $categories = $db->query("SELECT DISTINCT category FROM services WHERE category IS NOT NULL ORDER BY category")->fetchAll();
 
-// получаем услугу для редактирования
+// редактирование
 $editService = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM services WHERE id = ?");
@@ -120,7 +124,7 @@ if (isset($_GET['edit'])) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* стили такие же как в clients.php */
+        /* стили без изменений */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -168,7 +172,6 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
     <div class="admin-container">
-        <!-- сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -185,28 +188,23 @@ if (isset($_GET['edit'])) {
                 <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Выход</a></li>
             </ul>
         </div>
-        
-        <!-- основной контент -->
+
         <div class="admin-content">
             <h1><i class="fas fa-concierge-bell"></i> Управление услугами</h1>
-            
+
             <?php if (isset($message)): ?>
                 <div class="alert alert-success"><?php echo $message; ?></div>
             <?php endif; ?>
-            
             <?php if (isset($error)): ?>
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
-            
-            <!-- фильтры -->
+
             <form method="GET" class="search-form">
-                <input type="text" name="search" placeholder="Поиск по названию или описанию..." 
-                       value="<?php echo htmlspecialchars($search); ?>">
+                <input type="text" name="search" placeholder="Поиск по названию или описанию..." value="<?php echo htmlspecialchars($search); ?>">
                 <select name="category">
                     <option value="">Все категории</option>
                     <?php foreach ($categories as $cat): ?>
-                        <option value="<?php echo htmlspecialchars($cat['category']); ?>"
-                                <?php echo ($category == $cat['category']) ? 'selected' : ''; ?>>
+                        <option value="<?php echo htmlspecialchars($cat['category']); ?>" <?php echo ($category == $cat['category']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($cat['category']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -214,23 +212,19 @@ if (isset($_GET['edit'])) {
                 <button type="submit" class="btn btn-primary">Найти</button>
                 <a href="services.php" class="btn btn-info">Сбросить</a>
             </form>
-            
-            <!-- форма добавления/редактирования -->
+
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editService ? 'Редактирование услуги' : 'Добавление новой услуги'; ?></h2>
                 <form method="POST">
                     <input type="hidden" name="id" value="<?php echo $editService ? $editService['id'] : ''; ?>">
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="name">Название услуги *</label>
-                            <input type="text" id="name" name="name" required
-                                   value="<?php echo $editService ? htmlspecialchars($editService['name']) : ''; ?>">
+                            <input type="text" id="name" name="name" required value="<?php echo $editService ? htmlspecialchars($editService['name']) : ''; ?>">
                         </div>
                         <div class="form-group">
                             <label for="category">Категория</label>
-                            <input type="text" id="category" name="category" list="categories"
-                                   value="<?php echo $editService ? htmlspecialchars($editService['category']) : ''; ?>">
+                            <input type="text" id="category" name="category" list="categories" value="<?php echo $editService ? htmlspecialchars($editService['category']) : ''; ?>">
                             <datalist id="categories">
                                 <?php foreach ($categories as $cat): ?>
                                     <option value="<?php echo htmlspecialchars($cat['category']); ?>">
@@ -238,47 +232,35 @@ if (isset($_GET['edit'])) {
                             </datalist>
                         </div>
                     </div>
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="price">Цена (₽) *</label>
-                            <input type="number" id="price" name="price" min="0" step="0.01" required
-                                   value="<?php echo $editService ? $editService['price'] : ''; ?>">
+                            <input type="number" id="price" name="price" min="0" step="0.01" required value="<?php echo $editService ? $editService['price'] : ''; ?>">
                         </div>
                         <div class="form-group">
                             <label for="duration_min">Длительность (минуты) *</label>
-                            <input type="number" id="duration_min" name="duration_min" min="5" max="300" step="5" required
-                                   value="<?php echo $editService ? $editService['duration_min'] : '30'; ?>">
+                            <input type="number" id="duration_min" name="duration_min" min="5" max="300" step="5" required value="<?php echo $editService ? $editService['duration_min'] : '30'; ?>">
                         </div>
                     </div>
-                    
                     <div class="form-group">
                         <label for="description">Описание услуги</label>
-                        <textarea id="description" name="description" rows="3"><?php 
-                            echo $editService ? htmlspecialchars($editService['description']) : ''; 
-                        ?></textarea>
+                        <textarea id="description" name="description" rows="3"><?php echo $editService ? htmlspecialchars($editService['description']) : ''; ?></textarea>
                     </div>
-                    
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" name="is_active" value="1" 
-                                   <?php echo (!$editService || $editService['is_active']) ? 'checked' : ''; ?>>
+                            <input type="checkbox" name="is_active" value="1" <?php echo (!$editService || $editService['is_active']) ? 'checked' : ''; ?>>
                             Активная услуга (доступна для записи)
                         </label>
                     </div>
-                    
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-success">
-                            <?php echo $editService ? 'Сохранить изменения' : 'Добавить услугу'; ?>
-                        </button>
+                        <button type="submit" class="btn btn-success"><?php echo $editService ? 'Сохранить изменения' : 'Добавить услугу'; ?></button>
                         <?php if ($editService): ?>
                             <a href="services.php" class="btn btn-info">Отмена</a>
                         <?php endif; ?>
                     </div>
                 </form>
             </div>
-            
-            <!-- таблица услуг -->
+
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -296,9 +278,7 @@ if (isset($_GET['edit'])) {
                     </thead>
                     <tbody>
                         <?php if (empty($services)): ?>
-                            <tr>
-                                <td colspan="9" style="text-align: center;">Услуги не найдены</td>
-                            </tr>
+                            <tr><td colspan="9" style="text-align: center;">Услуги не найдены</td></tr>
                         <?php else: ?>
                             <?php foreach ($services as $service): ?>
                             <tr>
@@ -307,8 +287,8 @@ if (isset($_GET['edit'])) {
                                     <div><strong><?php echo htmlspecialchars($service['name']); ?></strong></div>
                                     <?php if ($service['description']): ?>
                                         <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                                            <?php echo htmlspecialchars(substr($service['description'], 0, 100)); ?>
-                                            <?php if (strlen($service['description']) > 100): ?>...<?php endif; ?>
+                                            <?php echo htmlspecialchars(mb_substr($service['description'], 0, 100)); ?>
+                                            <?php if (mb_strlen($service['description']) > 100): ?>...<?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 </td>
@@ -319,9 +299,7 @@ if (isset($_GET['edit'])) {
                                         <span style="color: #999;">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <strong><?php echo number_format($service['price'], 0, ',', ' '); ?> ₽</strong>
-                                </td>
+                                <td><strong><?php echo number_format($service['price'], 0, ',', ' '); ?> ₽</strong></td>
                                 <td><?php echo $service['duration_min']; ?> мин</td>
                                 <td>
                                     <?php if ($service['is_active']): ?>
@@ -330,30 +308,13 @@ if (isset($_GET['edit'])) {
                                         <span class="status-inactive"><i class="fas fa-times-circle"></i> Неактивна</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <span class="badge <?php echo $service['total_appointments'] > 0 ? 'badge-success' : 'badge-warning'; ?>">
-                                        <?php echo $service['total_appointments']; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-info"><?php echo $service['masters_count']; ?></span>
-                                </td>
+                                <td><span class="badge <?php echo $service['total_appointments'] > 0 ? 'badge-success' : 'badge-warning'; ?>"><?php echo $service['total_appointments']; ?></span></td>
+                                <td><span class="badge badge-info"><?php echo $service['masters_count']; ?></span></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="?edit=<?php echo $service['id']; ?>" 
-                                           class="btn btn-sm btn-primary" title="Редактировать">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="appointments.php?service_id=<?php echo $service['id']; ?>" 
-                                           class="btn btn-sm btn-success" title="Записи">
-                                            <i class="fas fa-calendar-alt"></i>
-                                        </a>
-                                        <a href="?delete=<?php echo $service['id']; ?>" 
-                                           class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('Вы уверены, что хотите удалить услугу?')"
-                                           title="Удалить">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <a href="?edit=<?php echo $service['id']; ?>" class="btn btn-sm btn-primary" title="Редактировать"><i class="fas fa-edit"></i></a>
+                                        <a href="appointments.php?service_id=<?php echo $service['id']; ?>" class="btn btn-sm btn-success" title="Записи"><i class="fas fa-calendar-alt"></i></a>
+                                        <a href="?delete=<?php echo $service['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить услугу?')" title="Удалить"><i class="fas fa-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
@@ -362,14 +323,12 @@ if (isset($_GET['edit'])) {
                     </tbody>
                 </table>
             </div>
-            
-            <!-- пагинация -->
+
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
                     <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($category); ?>">&laquo; Назад</a>
                 <?php endif; ?>
-                
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <?php if ($i == $page): ?>
                         <span class="current"><?php echo $i; ?></span>
@@ -377,48 +336,20 @@ if (isset($_GET['edit'])) {
                         <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($category); ?>"><?php echo $i; ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
-                
                 <?php if ($page < $totalPages): ?>
                     <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($category); ?>">Вперед &raquo;</a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
-            
-            <!-- статистика -->
+
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика услуг</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div>
-                        <h4>Всего услуг: <?php echo $totalServices; ?></h4>
-                    </div>
-                    <div>
-                        <h4>Активных: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(*) as count FROM services WHERE is_active = 1");
-                            echo $stmt->fetch()['count'];
-                            ?>
-                        </h4>
-                    </div>
-                    <div>
-                        <h4>Категорий: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(DISTINCT category) as count FROM services WHERE category IS NOT NULL");
-                            echo $stmt->fetch()['count'];
-                            ?>
-                        </h4>
-                    </div>
-                    <div>
-                        <h4>Средняя цена: 
-                            <?php 
-                            $stmt = $db->query("SELECT AVG(price) as avg_price FROM services WHERE is_active = 1");
-                            $avg = $stmt->fetch()['avg_price'];
-                            echo number_format($avg, 0, ',', ' ') . ' ₽';
-                            ?>
-                        </h4>
-                    </div>
+                    <div><h4>Всего услуг: <?php echo $totalServices; ?></h4></div>
+                    <div><h4>Активных: <?php $stmt = $db->query("SELECT COUNT(*) as count FROM services WHERE is_active = TRUE"); echo $stmt->fetch()['count']; ?></h4></div>
+                    <div><h4>Категорий: <?php $stmt = $db->query("SELECT COUNT(DISTINCT category) as count FROM services WHERE category IS NOT NULL"); echo $stmt->fetch()['count']; ?></h4></div>
+                    <div><h4>Средняя цена: <?php $stmt = $db->query("SELECT AVG(price) as avg_price FROM services WHERE is_active = TRUE"); $avg = $stmt->fetch()['avg_price']; echo number_format($avg, 0, ',', ' ') . ' ₽'; ?></h4></div>
                 </div>
-                
-                <!-- топ услуг по популярности -->
                 <div style="margin-top: 20px;">
                     <h4>Самые популярные услуги</h4>
                     <?php
@@ -426,7 +357,7 @@ if (isset($_GET['edit'])) {
                         SELECT s.name, COUNT(a.id) as appointment_count
                         FROM services s
                         LEFT JOIN appointments a ON s.id = a.service_id
-                        WHERE s.is_active = 1
+                        WHERE s.is_active = TRUE
                         GROUP BY s.id
                         ORDER BY appointment_count DESC
                         LIMIT 5
@@ -437,9 +368,7 @@ if (isset($_GET['edit'])) {
                         <?php foreach ($popularServices as $popular): ?>
                         <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
                             <?php echo htmlspecialchars($popular['name']); ?>
-                            <span class="badge badge-success" style="float: right;">
-                                <?php echo $popular['appointment_count']; ?> записей
-                            </span>
+                            <span class="badge badge-success" style="float: right;"><?php echo $popular['appointment_count']; ?> записей</span>
                         </li>
                         <?php endforeach; ?>
                     </ul>

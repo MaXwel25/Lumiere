@@ -1,6 +1,7 @@
 <?php
+// masters.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
 // обработка добавления/редактирования мастера
@@ -10,37 +11,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = $_POST['phone'] ?? '';
     $specialization = $_POST['specialization'] ?? null;
     $hourly_rate = $_POST['hourly_rate'] ?? null;
-    $is_active = isset($_POST['is_active']) ? 1 : 0;
-    
-    if ($id) {
-        // редактирование существующего мастера
-        $stmt = $db->prepare("
-            UPDATE masters 
-            SET full_name = ?, phone = ?, specialization = ?, hourly_rate = ?, is_active = ?, updated_at = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$full_name, $phone, $specialization, $hourly_rate, $is_active, $id]);
-        $message = "Мастер успешно обновлен";
-    } else {
-        // добавление нового мастера
-        $stmt = $db->prepare("
-            INSERT INTO masters (full_name, phone, specialization, hourly_rate, is_active) 
-            VALUES (?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$full_name, $phone, $specialization, $hourly_rate, $is_active]);
-        $message = "Мастер успешно добавлен";
+    $is_active = isset($_POST['is_active']); // возвращает true/false для BOOLEAN
+
+    try {
+        if ($id) {
+            // редактирование
+            $stmt = $db->prepare("
+                UPDATE masters 
+                SET full_name = ?, phone = ?, specialization = ?, hourly_rate = ?, 
+                    is_active = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ");
+            $stmt->execute([$full_name, $phone, $specialization, $hourly_rate, $is_active, $id]);
+            $message = "Мастер успешно обновлен";
+        } else {
+            // добавление
+            $stmt = $db->prepare("
+                INSERT INTO masters (full_name, phone, specialization, hourly_rate, is_active) 
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$full_name, $phone, $specialization, $hourly_rate, $is_active]);
+            $message = "Мастер успешно добавлен";
+        }
+    } catch (PDOException $e) {
+        $error = "Ошибка базы данных: " . $e->getMessage();
     }
 }
 
-// обработка удаления мастера
+// обработка удаления
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    
-    // проверяем, есть ли у мастера активные записи
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE master_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
-    
+
     if ($hasAppointments) {
         $error = "Нельзя удалить мастера с активными записями";
     } else {
@@ -56,24 +60,23 @@ $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-// формируем запрос с поиском
 $where = "WHERE 1=1";
 $params = [];
 
 if ($search) {
-    $where .= " AND (full_name LIKE ? OR phone LIKE ? OR specialization LIKE ?)";
+    $where .= " AND (full_name ILIKE ? OR phone ILIKE ? OR specialization ILIKE ?)";
     $searchTerm = "%$search%";
     $params = array_fill(0, 3, $searchTerm);
 }
 
-// общее количество мастеров
+// общее количество
 $stmt = $db->prepare("SELECT COUNT(*) as total FROM masters $where");
 $stmt->execute($params);
 $totalMasters = $stmt->fetch()['total'];
 $totalPages = ceil($totalMasters / $limit);
 
-// получаем мастеров для текущей страницы
-$stmt = $db->prepare("
+// получаем мастеров с плейсхолдерами для LIMIT и OFFSET
+$query = "
     SELECT 
         m.*,
         COUNT(DISTINCT a.id) as total_appointments,
@@ -81,17 +84,20 @@ $stmt = $db->prepare("
         AVG(r.final_amount) as avg_receipt
     FROM masters m
     LEFT JOIN appointments a ON m.id = a.master_id
-    LEFT JOIN work_schedule ws ON m.id = ws.master_id AND ws.is_working_day = 1
+    LEFT JOIN work_schedule ws ON m.id = ws.master_id AND ws.is_working_day = TRUE
     LEFT JOIN receipts r ON a.id = r.appointment_id AND r.payment_status = 'paid'
     $where
     GROUP BY m.id
     ORDER BY m.is_active DESC, m.created_at DESC
-    LIMIT $limit OFFSET $offset
-");
+    LIMIT ? OFFSET ?
+";
+$stmt = $db->prepare($query);
+$params[] = $limit;
+$params[] = $offset;
 $stmt->execute($params);
 $masters = $stmt->fetchAll();
 
-// получаем мастера для редактирования
+// редактирование
 $editMaster = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM masters WHERE id = ?");
@@ -108,7 +114,7 @@ if (isset($_GET['edit'])) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* стили такие же как в clients.php */
+        /* стили без изменений */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -155,7 +161,6 @@ if (isset($_GET['edit'])) {
 </head>
 <body>
     <div class="admin-container">
-        <!-- Сайдбар -->
         <div class="admin-sidebar">
             <div class="admin-logo">
                 <h2><i class="fas fa-cut"></i> Админ-панель</h2>
@@ -173,7 +178,6 @@ if (isset($_GET['edit'])) {
             </ul>
         </div>
         
-        <!-- Основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-user-tie"></i> Управление мастерами</h1>
             
@@ -185,7 +189,6 @@ if (isset($_GET['edit'])) {
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
             
-            <!-- Поиск -->
             <form method="GET" class="search-form">
                 <input type="text" name="search" placeholder="Поиск по имени, телефону или специализации..." 
                        value="<?php echo htmlspecialchars($search); ?>">
@@ -193,7 +196,6 @@ if (isset($_GET['edit'])) {
                 <a href="masters.php" class="btn btn-info">Сбросить</a>
             </form>
             
-            <!-- форма добавления/редактирования -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editMaster ? 'Редактирование мастера' : 'Добавление нового мастера'; ?></h2>
                 <form method="POST">
@@ -244,7 +246,6 @@ if (isset($_GET['edit'])) {
                 </form>
             </div>
             
-            <!-- таблица мастеров -->
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -263,9 +264,7 @@ if (isset($_GET['edit'])) {
                     </thead>
                     <tbody>
                         <?php if (empty($masters)): ?>
-                            <tr>
-                                <td colspan="10" style="text-align: center;">Мастера не найдены</td>
-                            </tr>
+                            <tr><td colspan="10" style="text-align: center;">Мастера не найдены</td></tr>
                         <?php else: ?>
                             <?php foreach ($masters as $master): ?>
                             <tr>
@@ -281,43 +280,21 @@ if (isset($_GET['edit'])) {
                                         <span class="status-inactive"><i class="fas fa-times-circle"></i> Неактивен</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <span class="badge <?php echo $master['total_appointments'] > 0 ? 'badge-success' : 'badge-warning'; ?>">
-                                        <?php echo $master['total_appointments']; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge badge-info"><?php echo $master['working_days']; ?></span>
-                                </td>
+                                <td><span class="badge <?php echo $master['total_appointments'] > 0 ? 'badge-success' : 'badge-warning'; ?>"><?php echo $master['total_appointments']; ?></span></td>
+                                <td><span class="badge badge-info"><?php echo $master['working_days']; ?></span></td>
                                 <td>
                                     <?php if ($master['avg_receipt']): ?>
-                                        <span class="badge badge-success">
-                                            <?php echo number_format($master['avg_receipt'], 0, ',', ' '); ?> ₽
-                                        </span>
+                                        <span class="badge badge-success"><?php echo number_format($master['avg_receipt'], 0, ',', ' '); ?> ₽</span>
                                     <?php else: ?>
                                         <span class="badge badge-warning">—</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="?edit=<?php echo $master['id']; ?>" 
-                                           class="btn btn-sm btn-primary" title="Редактировать">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="schedule.php?master_id=<?php echo $master['id']; ?>" 
-                                           class="btn btn-sm btn-info" title="Расписание">
-                                            <i class="fas fa-clock"></i>
-                                        </a>
-                                        <a href="appointments.php?master_id=<?php echo $master['id']; ?>" 
-                                           class="btn btn-sm btn-success" title="Записи">
-                                            <i class="fas fa-calendar-alt"></i>
-                                        </a>
-                                        <a href="?delete=<?php echo $master['id']; ?>" 
-                                           class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('Вы уверены, что хотите удалить мастера?')"
-                                           title="Удалить">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <a href="?edit=<?php echo $master['id']; ?>" class="btn btn-sm btn-primary" title="Редактировать"><i class="fas fa-edit"></i></a>
+                                        <a href="schedule.php?master_id=<?php echo $master['id']; ?>" class="btn btn-sm btn-info" title="Расписание"><i class="fas fa-clock"></i></a>
+                                        <a href="appointments.php?master_id=<?php echo $master['id']; ?>" class="btn btn-sm btn-success" title="Записи"><i class="fas fa-calendar-alt"></i></a>
+                                        <a href="?delete=<?php echo $master['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить мастера?')" title="Удалить"><i class="fas fa-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
@@ -327,57 +304,29 @@ if (isset($_GET['edit'])) {
                 </table>
             </div>
             
-            <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
-                <?php if ($page > 1): ?>
-                    <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>">&laquo; Назад</a>
-                <?php endif; ?>
-                
+                <?php if ($page > 1): ?><a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>">&laquo; Назад</a><?php endif; ?>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <?php if ($i == $page): ?>
-                        <span class="current"><?php echo $i; ?></span>
-                    <?php else: ?>
-                        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>"><?php echo $i; ?></a>
-                    <?php endif; ?>
+                    <?php if ($i == $page): ?><span class="current"><?php echo $i; ?></span>
+                    <?php else: ?><a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>"><?php echo $i; ?></a><?php endif; ?>
                 <?php endfor; ?>
-                
-                <?php if ($page < $totalPages): ?>
-                    <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>">Вперед &raquo;</a>
-                <?php endif; ?>
+                <?php if ($page < $totalPages): ?><a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>">Вперед &raquo;</a><?php endif; ?>
             </div>
             <?php endif; ?>
             
-            <!-- статистика -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика мастеров</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div>
-                        <h4>Всего мастеров: <?php echo $totalMasters; ?></h4>
-                    </div>
-                    <div>
-                        <h4>Активных: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(*) as count FROM masters WHERE is_active = 1");
-                            echo $stmt->fetch()['count'];
-                            ?>
-                        </h4>
-                    </div>
-                    <div>
-                        <h4>Неактивных: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(*) as count FROM masters WHERE is_active = 0");
-                            echo $stmt->fetch()['count'];
-                            ?>
-                        </h4>
-                    </div>
+                    <div><h4>Всего мастеров: <?php echo $totalMasters; ?></h4></div>
+                    <div><h4>Активных: <?php $stmt = $db->query("SELECT COUNT(*) as count FROM masters WHERE is_active = TRUE"); echo $stmt->fetch()['count']; ?></h4></div>
+                    <div><h4>Неактивных: <?php $stmt = $db->query("SELECT COUNT(*) as count FROM masters WHERE is_active = FALSE"); echo $stmt->fetch()['count']; ?></h4></div>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-    // автоматическое форматирование телефона
     document.getElementById('phone')?.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 0) {

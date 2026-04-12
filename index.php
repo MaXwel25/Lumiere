@@ -1,13 +1,22 @@
 <?php
-require_once 'includes/header.php';
+// index.php
+require_once 'includes/header.php'; // здесь должно быть подключение к PostgreSQL через PDO ($db)
 
 // получаем 4 популярные услуги для главной страницы
-$stmt = $db->query("SELECT * FROM services WHERE is_active = TRUE ORDER BY price DESC LIMIT 4");
-$services = $stmt->fetchAll();
+try {
+    $stmt = $db->query("SELECT * FROM services WHERE is_active = TRUE ORDER BY price DESC LIMIT 4");
+    $services = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Ошибка загрузки услуг: " . $e->getMessage());
+}
 
 // получаем 3 лучших мастера
-$stmt = $db->query("SELECT * FROM masters WHERE is_active = TRUE LIMIT 3");
-$masters = $stmt->fetchAll();
+try {
+    $stmt = $db->query("SELECT * FROM masters WHERE is_active = TRUE LIMIT 3");
+    $masters = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("Ошибка загрузки мастеров: " . $e->getMessage());
+}
 ?>
 <!-- герой-секция -->
 <section class="hero">
@@ -31,7 +40,15 @@ $masters = $stmt->fetchAll();
                     <i class="fas fa-<?php echo ($service['category'] == 'стрижки') ? 'cut' : (($service['category'] == 'окрашивание') ? 'palette' : 'beard'); ?>"></i>
                 </div>
                 <h3><?php echo htmlspecialchars($service['name']); ?></h3>
-                <p><?php echo htmlspecialchars(mb_substr($service['description'], 0, 100) . '...'); ?></p>
+                <p>
+                    <?php 
+                    // Безопасная обработка возможно NULL-значения description
+                    $desc = $service['description'] ?? '';
+                    $short_desc = mb_substr($desc, 0, 100);
+                    echo htmlspecialchars($short_desc);
+                    if (mb_strlen($desc) > 100) echo '...';
+                    ?>
+                </p>
                 <div class="service-price">
                     <span><?php echo number_format($service['price'], 0, ',', ' '); ?> ₽</span>
                     <span><i class="fas fa-clock"></i> <?php echo $service['duration_min']; ?> мин</span>

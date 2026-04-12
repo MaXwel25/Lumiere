@@ -1,26 +1,30 @@
 <?php
+// admin/login.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';  // содержит функции для работы с admins
 
-// если уже авторизован, перенаправляем в админку
+// Если уже авторизован — на дашборд
 if (isAdminLoggedIn()) {
     header('Location: dashboard.php');
     exit();
 }
 
-// обработка формы входа
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    
-    // проверяем пароль (в реальном проекте используйте хеширование!)
-    if ($password === $admin_password) {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_login_time'] = time();
-        header('Location: dashboard.php');
-        exit();
+
+    if (empty($email) || empty($password)) {
+        $error = 'Введите email и пароль';
     } else {
-        $error = 'Неверный пароль!';
+        // Используем функцию adminLogin из auth.php (работает с таблицей admins)
+        $result = adminLogin($email, $password);
+        if ($result['success']) {
+            header('Location: dashboard.php');
+            exit();
+        } else {
+            $error = $result['message'];
+        }
     }
 }
 ?>
@@ -29,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в админ-панель</title>
+    <title>Вход в админ-панель | Lumiere</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .login-container {
@@ -82,30 +86,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .button-container {
             margin-top: 20px;
         }
+        .btn-home {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            background: #95a5a6;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .btn-home:hover {
+            background: #7f8c8d;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h1 class="login-title">Вход в админ-панель</h1>
-        
+
         <?php if ($error): ?>
-            <div class="error"><?php echo $error; ?></div>
+            <div class="error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
-        
+
         <form method="POST" action="">
             <div class="form-group">
-                <label for="password">Пароль администратора:</label>
+                <label for="email">Email администратора:</label>
+                <input type="email" id="email" name="email" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль:</label>
                 <input type="password" id="password" name="password" required>
             </div>
             <button type="submit" class="btn-login">Войти</button>
         </form>
-        
+
         <div class="button-container">
-            <a href="../index.php" class="btn-home">Вернуться на главную</a>
+            <a href="../index.php" class="btn-home">← Вернуться на главную</a>
         </div>
 
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
-            Парикмахерская "Lumiere" - Администрирование
+            Парикмахерская "Lumiere" – Администрирование
         </div>
     </div>
 </body>

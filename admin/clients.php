@@ -1,44 +1,79 @@
 <?php
+// clients.php
 require_once '../config/database.php';
-require_once '../config/admin_config.php';
+require_once '../includes/auth.php';
 requireAdminAuth();
 
 // обработка добавления/редактирования клиента
+// обработка добавления/редактирования клиента
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? null;
-    $full_name = $_POST['full_name'] ?? '';
-    $phone = $_POST['phone'] ?? '';
-    $email = $_POST['email'] ?? null;
-    
-    if ($id) {
-        // редактирование существующего клиента
-        $stmt = $db->prepare("
-            UPDATE clients 
-            SET full_name = ?, phone = ?, email = ?, updated_at = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$full_name, $phone, $email, $id]);
-        $message = "Клиент успешно обновлен";
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+
+    if (empty($full_name) || empty($phone)) {
+        $error = "ФИО и телефон обязательны для заполнения";
     } else {
-        // добавление нового клиента
-        $stmt = $db->prepare("
-            INSERT INTO clients (full_name, phone, email) 
-            VALUES (?, ?, ?)
-        ");
-        $stmt->execute([$full_name, $phone, $email]);
-        $message = "Клиент успешно добавлен";
+        try {
+            if ($id) {
+                // Проверка уникальности email (исключая текущего клиента)
+                if (!empty($email)) {
+                    $checkStmt = $db->prepare("SELECT id FROM clients WHERE email = ? AND id != ?");
+                    $checkStmt->execute([$email, $id]);
+                    if ($checkStmt->fetch()) {
+                        throw new PDOException("Клиент с таким email уже существует", 23505);
+                    }
+                }
+
+                $stmt = $db->prepare("
+                    UPDATE clients 
+                    SET full_name = ?, phone = ?, email = ?, updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$full_name, $phone, $email ?: null, $id]);
+                $message = "Клиент успешно обновлен";
+            } else {
+                // Добавление нового клиента
+                if (empty($email)) {
+                    // Генерируем временный уникальный email
+                    $email = 'client_' . uniqid() . '@temp.local';
+                } else {
+                    // Проверяем уникальность email
+                    $checkStmt = $db->prepare("SELECT id FROM clients WHERE email = ?");
+                    $checkStmt->execute([$email]);
+                    if ($checkStmt->fetch()) {
+                        throw new PDOException("Клиент с таким email уже существует", 23505);
+                    }
+                }
+
+                $tempHash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+                $stmt = $db->prepare("
+                    INSERT INTO clients (full_name, phone, email, password_hash) 
+                    VALUES (?, ?, ?, ?)
+                ");
+                $stmt->execute([$full_name, $phone, $email, $tempHash]);
+                $message = "Клиент успешно добавлен";
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23505) {
+                $error = "Клиент с таким email уже существует. Пожалуйста, укажите другой email.";
+            } else {
+                $error = "Ошибка базы данных: " . $e->getMessage();
+            }
+        }
     }
 }
 
 // обработка удаления клиента
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    
+
     // проверяем, есть ли у клиента активные записи
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM appointments WHERE client_id = ? AND status = 'scheduled'");
     $stmt->execute([$id]);
     $hasAppointments = $stmt->fetch()['count'] > 0;
-    
+
     if ($hasAppointments) {
         $error = "Нельзя удалить клиента с активными записями";
     } else {
@@ -70,8 +105,8 @@ $stmt->execute($params);
 $totalClients = $stmt->fetch()['total'];
 $totalPages = ceil($totalClients / $limit);
 
-// получаем клиентов для текущей страницы
-$stmt = $db->prepare("
+// получаем клиентов для текущей страницы (используем плейсхолдеры для LIMIT и OFFSET)
+$query = "
     SELECT 
         c.*,
         COUNT(a.id) as total_appointments,
@@ -81,8 +116,12 @@ $stmt = $db->prepare("
     $where
     GROUP BY c.id
     ORDER BY c.created_at DESC
-    LIMIT $limit OFFSET $offset
-");
+    LIMIT ? OFFSET ?
+";
+$stmt = $db->prepare($query);
+// Добавляем параметры LIMIT и OFFSET в массив параметров
+$params[] = $limit;
+$params[] = $offset;
 $stmt->execute($params);
 $clients = $stmt->fetchAll();
 
@@ -103,6 +142,7 @@ if (isset($_GET['edit'])) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* все стили остаются без изменений */
         .admin-container { display: flex; min-height: 100vh; }
         .admin-sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px 0; }
         .admin-content { flex: 1; padding: 20px; background: #f5f5f5; }
@@ -163,33 +203,33 @@ if (isset($_GET['edit'])) {
                 <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Выход</a></li>
             </ul>
         </div>
-        
+
         <!-- основной контент -->
         <div class="admin-content">
             <h1><i class="fas fa-users"></i> Управление клиентами</h1>
-            
+
             <?php if (isset($message)): ?>
                 <div class="alert alert-success"><?php echo $message; ?></div>
             <?php endif; ?>
-            
+
             <?php if (isset($error)): ?>
                 <div class="alert alert-error"><?php echo $error; ?></div>
             <?php endif; ?>
-            
+
             <!-- поиск -->
             <form method="GET" class="search-form">
-                <input type="text" name="search" placeholder="Поиск по имени, телефону или email..." 
+                <input type="text" name="search" placeholder="Поиск по имени, телефону или email..."
                        value="<?php echo htmlspecialchars($search); ?>">
                 <button type="submit" class="btn btn-primary">Найти</button>
                 <a href="clients.php" class="btn btn-info">Сбросить</a>
             </form>
-            
+
             <!-- форма добавления/редактирования -->
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h2><?php echo $editClient ? 'Редактирование клиента' : 'Добавление нового клиента'; ?></h2>
                 <form method="POST">
                     <input type="hidden" name="id" value="<?php echo $editClient ? $editClient['id'] : ''; ?>">
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="full_name">ФИО *</label>
@@ -207,7 +247,7 @@ if (isset($_GET['edit'])) {
                                    value="<?php echo $editClient ? htmlspecialchars($editClient['email']) : ''; ?>">
                         </div>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" class="btn btn-success">
                             <?php echo $editClient ? 'Сохранить изменения' : 'Добавить клиента'; ?>
@@ -218,7 +258,7 @@ if (isset($_GET['edit'])) {
                     </div>
                 </form>
             </div>
-            
+
             <!-- таблица клиентов -->
             <div class="table-responsive">
                 <table>
@@ -259,16 +299,16 @@ if (isset($_GET['edit'])) {
                                 <td><?php echo date('d.m.Y', strtotime($client['created_at'])); ?></td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="?edit=<?php echo $client['id']; ?>" 
+                                        <a href="?edit=<?php echo $client['id']; ?>"
                                            class="btn btn-sm btn-primary" title="Редактировать">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="appointments.php?client_id=<?php echo $client['id']; ?>" 
+                                        <a href="appointments.php?client_id=<?php echo $client['id']; ?>"
                                            class="btn btn-sm btn-info" title="Записи клиента">
                                             <i class="fas fa-calendar-alt"></i>
                                         </a>
-                                        <a href="?delete=<?php echo $client['id']; ?>" 
-                                           class="btn btn-sm btn-danger" 
+                                        <a href="?delete=<?php echo $client['id']; ?>"
+                                           class="btn btn-sm btn-danger"
                                            onclick="return confirm('Вы уверены, что хотите удалить клиента?')"
                                            title="Удалить">
                                             <i class="fas fa-trash"></i>
@@ -281,14 +321,14 @@ if (isset($_GET['edit'])) {
                     </tbody>
                 </table>
             </div>
-            
+
             <!-- пагинация -->
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
                     <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>">&laquo; Назад</a>
                 <?php endif; ?>
-                
+
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <?php if ($i == $page): ?>
                         <span class="current"><?php echo $i; ?></span>
@@ -296,13 +336,13 @@ if (isset($_GET['edit'])) {
                         <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>"><?php echo $i; ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
-                
+
                 <?php if ($page < $totalPages): ?>
                     <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>">Вперед &raquo;</a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
-            
+
             <!-- статистика -->
             <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
                 <h3>Статистика клиентов</h3>
@@ -311,17 +351,17 @@ if (isset($_GET['edit'])) {
                         <h4>Всего клиентов: <?php echo $totalClients; ?></h4>
                     </div>
                     <div>
-                        <h4>Новых сегодня: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(*) as count FROM clients WHERE DATE(created_at) = CURDATE()");
+                        <h4>Новых сегодня:
+                            <?php
+                            $stmt = $db->query("SELECT COUNT(*) as count FROM clients WHERE created_at::date = CURRENT_DATE");
                             echo $stmt->fetch()['count'];
                             ?>
                         </h4>
                     </div>
                     <div>
-                        <h4>С email: 
-                            <?php 
-                            $stmt = $db->query("SELECT COUNT(*) as count FROM clients WHERE email IS NOT NULL");
+                        <h4>С email:
+                            <?php
+                            $stmt = $db->query("SELECT COUNT(*) as count FROM clients WHERE email IS NOT NULL AND email != ''");
                             echo $stmt->fetch()['count'];
                             ?>
                         </h4>
@@ -330,7 +370,7 @@ if (isset($_GET['edit'])) {
             </div>
         </div>
     </div>
-    
+
     <script>
     // автоматическое форматирование телефона
     document.getElementById('phone')?.addEventListener('input', function(e) {
