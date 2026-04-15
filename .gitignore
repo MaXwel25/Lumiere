@@ -1,2 +1,10 @@
-/config
+/config/
 /logs
+/logs/*.php
+/vendor/
+/tests/
+*xml
+*json
+*lock
+*cache
+/*.cache/

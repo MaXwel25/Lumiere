@@ -19,19 +19,19 @@
 ## 🗃️ Структура проекта
 
 Lumiere/               
-├── admin/               
-├── assets 
-|        ├── css
-|        └── js
-├── config/       
-├── includes/
-├── photo/
-├── profile/          
-├── index.php            
-├── booking.php          
+├── admin/                      
+├── assets                    
+|        ├── css            
+|        └── js              
+├── config/                            
+├── includes/                                 
+├── photo/                      
+├── profile/                      
+├── index.php                       
+├── booking.php             
 ├── contacts.php        
 ├── masters.php          
-└── services.php 
+└── services.php                 
 
 ## 🛠️ Технологии
 
