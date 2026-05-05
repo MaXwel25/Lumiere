@@ -1,0 +1,112 @@
+<mxfile host="app.diagrams.net" modified="2026-04-14T10:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram id="lumiere-component-diagram" name="Диаграмма компонентов Lumiere">
+    <mxGraphModel dx="1426" dy="842" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Интерфейсная часть -->
+        <mxCell id="ui_group" value="Интерфейсная часть" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="560" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="index_php" value="index.php&lt;br&gt;&lt;&lt;form&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="booking_php" value="booking.php&lt;br&gt;&lt;&lt;form&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="services_php" value="services.php&lt;br&gt;&lt;&lt;form&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="profile_group" value="profile/&lt;br&gt;profile.php&lt;br&gt;&lt;&lt;form&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Логика приложения -->
+        <mxCell id="logic_group" value="Логика приложения (Includes)" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="360" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="auth_php" value="auth.php&lt;br&gt;&lt;&lt;library&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="functions_php" value="functions.php&lt;br&gt;&lt;&lt;library&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="login_php" value="login.php&lt;br&gt;&lt;&lt;source&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="logout_php" value="logout.php&lt;br&gt;&lt;&lt;source&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="380" width="140" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Конфигурация и Ресурсы -->
+        <mxCell id="config_group" value="Конфигурация и Ресурсы" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="440" y="260" width="160" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="db_config" value="database.php&lt;br&gt;&lt;&lt;config&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="455" y="290" width="130" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="css_assets" value="assets/css&lt;br&gt;&lt;&lt;file&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="455" y="360" width="60" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="js_assets" value="assets/js&lt;br&gt;&lt;&lt;file&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="525" y="360" width="60" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- База Данных -->
+        <mxCell id="db_group" value="Подсистема Данных" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="560" height="160" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="db_server" value="PostgreSQL Server&lt;br&gt;&lt;&lt;database&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;fillColor=#b1ddf0;strokeColor=#10739e;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="520" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="tbl_users" value="users / admins&lt;br&gt;&lt;&lt;table&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tbl_services" value="services&lt;br&gt;&lt;&lt;table&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="200" y="600" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tbl_bookings" value="bookings&lt;br&gt;&lt;&lt;table&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="340" y="600" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="tbl_clients" value="clients&lt;br&gt;&lt;&lt;table&gt;&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=10;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="480" y="600" width="100" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Связи (Зависимости) -->
+        <!-- UI -> Logic -->
+        <mxCell id="edge_ui_logic_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="booking_php" target="auth_php">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_ui_logic_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="booking_php" target="functions_php">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_profile_login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="profile_group" target="login_php">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Logic -> Config -->
+        <mxCell id="edge_logic_config" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="functions_php" target="db_config">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Logic -> DB -->
+        <mxCell id="edge_auth_db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="auth_php" target="db_server">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_func_db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="functions_php" target="db_server">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- UI -> Assets -->
+        <mxCell id="edge_ui_assets" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;startArrow=none;startFill=0;endArrow=open;endFill=0;" edge="1" parent="1" source="index_php" target="css_assets">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
